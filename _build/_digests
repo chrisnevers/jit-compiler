@@ -1,6 +1,0 @@
-"Resource: /Users/Chris/Documents/Projects/vm/gen/src/compile.ml": "\188\254\211\213\006\138\200OT\150v.2\002\161 "
-"Rule: ocaml: cmx* & o* -> native (%=gen/src/compile )": "\130\133n\218Wz\192T\250uJsW\229w\230"
-"Resource: /Users/Chris/Documents/UML/vm/gen/src/compile.ml": "\188\254\211\213\006\138\200OT\150v.2\002\161 "
-"Rule: ocaml: ml -> cmo & cmi (%=gen/src/compile )": "g\252\007[\160{\141\152\012E\023\210]M\149\133"
-"Rule: ocaml dependencies ml (%=gen/src/compile )": "\131\220a\183<\2044\021V\b\234\194_\200\143\b"
-"Rule: ocaml: ml & cmi -> cmx & o (%=gen/src/compile )": "\025N\204\166O\222<>:\168\212\168\147\247\207\231"
