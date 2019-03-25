@@ -1,0 +1,10 @@
+### Starting build.
+# Target: gen/src/compile.ml.depends, tags: { extension:ml, file:gen/src/compile.ml, ocaml, ocamldep, quiet }
+/Users/Chris/.opam/4.07.1/bin/ocamldep.opt -modules gen/src/compile.ml > gen/src/compile.ml.depends # cached
+# Target: gen/src/compile.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:gen/src/compile.cmo, file:gen/src/compile.ml, implem, ocaml, quiet }
+/Users/Chris/.opam/4.07.1/bin/ocamlc.opt -c -I gen/src -o gen/src/compile.cmo gen/src/compile.ml # cached
+# Target: gen/src/compile.cmx, tags: { compile, extension:cmx, extension:ml, file:gen/src/compile.cmx, file:gen/src/compile.ml, implem, native, ocaml, quiet }
+/Users/Chris/.opam/4.07.1/bin/ocamlopt.opt -c -I gen/src -o gen/src/compile.cmx gen/src/compile.ml # cached
+# Target: gen/src/compile.native, tags: { dont_link_with, extension:native, file:gen/src/compile.native, link, native, ocaml, program, quiet }
+/Users/Chris/.opam/4.07.1/bin/ocamlopt.opt -I gen/src gen/src/compile.cmx -o gen/src/compile.native # cached
+# Compilation successful.

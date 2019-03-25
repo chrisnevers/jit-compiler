@@ -44,32 +44,40 @@ let p s =
   incr pc;
   str
 
+let to_binary n =
+  if n = 0 then "0" else
+  let rec aux acc n =
+  if n = 0 then acc
+  else aux (string_of_int (n land 1) :: acc) (n lsr 1)
+  in
+  String.concat "" (aux [] n)
+
 let rec gen exp =
   match exp with
   | Num n ->
     let line_no = !pc in
-    let s1 = p "1" in
-    let s2 = p (string_of_int n) in
+    let s1 = p "0001" in
+    let s2 = p (to_binary n) in
     line_no, s1 ^ s2
   | Var v ->
     let line_no = !pc in
-    let s1 = p "2" in
+    let s1 = p "0010" in
     let s2 = p (var_to_id v) in
     line_no, s1 ^ s2
   | App (m, n) ->
     let ml, res1 = gen m in
     let nl, res2 = gen n in
     let line_no = !pc in
-    let s1 = p "3" in
-    let s2 = p (string_of_int ml) in
-    let s3 = p (string_of_int nl) in
+    let s1 = p "0011" in
+    let s2 = p (to_binary ml) in
+    let s3 = p (to_binary nl) in
     line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3
   | Abs (m, n) ->
     let nl, res = gen n in
     let line_no = !pc in
-    let s1 = p "4" in
+    let s1 = p "0100" in
     let s2 = p (var_to_id m) in
-    let s3 = p (string_of_int nl) in
+    let s3 = p (to_binary nl) in
     line_no, res ^ s1 ^ s2 ^ s3
   | Op (o, es) -> match o with
     | Var "+" ->
@@ -77,10 +85,10 @@ let rec gen exp =
       let ll, res1 = gen l in
       let rl, res2 = gen r in
       let line_no = !pc in
-      let s1 = p "5" in
-      let s2 = p "300" in
-      let s3 = p (string_of_int ll) in
-      let s4 = p (string_of_int rl) in
+      let s1 = p "0101" in
+      let s2 = p "1000" in
+      let s3 = p (to_binary ll) in
+      let s4 = p (to_binary rl) in
       line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3 ^ s4
     | _ -> gen_error "unknown primitive operation"
 
@@ -91,75 +99,11 @@ let nest_app_ex = App (App (Abs ("x", Abs ("y", Var "y")), Num 4), Num 5)
 let num_ex = Num 5
 
 let _ =
-  let null = p "0" in
-  let res = gen add_ex in
+  let null = p "0000" in
+  let res = gen app_ex in
   let l, res = res in
   let out =
-    string_of_int !pc ^ "\n" ^
-    string_of_int (l) ^ "\n" ^
+    to_binary !pc ^ "\n" ^
+    to_binary (l) ^ "\n" ^
     null ^ res in
   write_to_file "tmp.byte" out
-
-(*
-  ISWIM
-
-  Β_v : Restricts what values you can apply to functions. You
-        can only pass constants or closures to functions
-    V, U :=
-      | λx.m
-      | b
-
-
-  Δ : (o_n b_1 ... b_n) => δ (o_n, b_1, ..., b_n)
-  δ : (O x B) ... -> V
-      Takes op and constant and returns value
-
-  v = Β_v ∪ Δ
-
-  →v  : one-step with compatible closure
-  →→v : transitive, reflexive closure
-  =v  : symetric closure
-
-  eval (M) :=
-    | b     if M =v b
-    | `fun  if M =v λx.N
-
-  compatible closure of R  = cc (R)
-  (a, b) ⋲ cc (R)   if (apiece a, apiece b) ⋲ R
-  ((1 + 1) + 1, 2 + 1) ⋲ cc (Arith)   if ((1+1), 2) ⋲ Arith
-
-  C :=
-    | ?
-    | λx.C
-    | C N
-    | M C
-    | o_n M ... C M ...
-
-  (λy.(λx. x + y)) (1 + 2)
-  (λy.(λx. x + y)) ?          ? = (1 + 2)
-
-  (1 + 2) →v 3
-  and so, ≡ (λy.λx.x + y) 3
-
-  C := □ | λx.C | C N | M C | o_n M ... C M ...
-
-  C[M] = C where □ is filled with M
-
-  □[M]                  = M
-  (λx.c)[M]             = λx.C[M]
-  (C N)[M]              = (C[M] N)
-  (N C)[M]              = (N C[M])
-  (o_n M... C N ...)[L] = (o_n M ... C[L] N ...)
-
-
-  M →v N if ∃ C . M = C[L] ^ N = C[K] ^ L v K
-
-  M is related to N if theres a common piece thats the same
-  except one thing thats different thats related to K.
-
-  "contexts" = C
-  programs with holes
-
-
-
- *)
