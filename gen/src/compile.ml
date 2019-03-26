@@ -84,17 +84,33 @@ let rec gen exp =
     let s3 = p (to_binary nl) in
     line_no, res ^ s1 ^ s2 ^ s3
   | Op (o, es) -> match o with
-    | "+" ->
-      let [l; r] = es in
-      let ll, res1 = gen l in
-      let rl, res2 = gen r in
-      let line_no = !pc in
-      let s1 = p "0110" in
-      let s2 = p "111001" in
-      let s3 = p (to_binary ll) in
-      let s4 = p (to_binary rl) in
-      line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3 ^ s4
+    | "-" -> begin match List.length es with
+      | 1 -> gen_op1 "110100" es
+      | 2 -> gen_op2 "110010" es
+      | _ -> gen_error "- should be unary or binary op"
+      end
+    | "+" -> gen_op2 "110011" es
     | _ -> gen_error "unknown primitive operation"
+
+and gen_op1 op es =
+  let [l] = es in
+  let ll, res1 = gen l in
+  let line_no = !pc in
+  let s1 = p "0110" in
+  let s2 = p op in
+  let s3 = p (to_binary ll) in
+  line_no, res1 ^ s1 ^ s2 ^ s3
+
+and gen_op2 op es =
+  let [l; r] = es in
+  let ll, res1 = gen l in
+  let rl, res2 = gen r in
+  let line_no = !pc in
+  let s1 = p "0110" in
+  let s2 = p op in
+  let s3 = p (to_binary ll) in
+  let s4 = p (to_binary rl) in
+  line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3 ^ s4
 
 let add_ex = Op ("+", [Num 1; Num 2])
 let add2_ex = App (Abs ("x", Op ("+", [Num 1; Var "x"])), Num 5)

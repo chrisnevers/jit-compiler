@@ -49,6 +49,8 @@ void display_m (int tag, M* m, bool nl) {
             MPrm* pr = (MPrm*) m;
             switch (pr->op) {
                 case TPAdd: cout << "+";
+                case TPNeg:
+                case TPSub: cout << "-";
                 default: break;
             };
             cout << "(";
@@ -118,9 +120,29 @@ void display_k (int tag, K* k) {
             cout << ")";
             break;
         }
+        case TKOp1: {
+            KOp1* op = (KOp1*) k;
+            cout << "op1 (";
+            switch (op->op) {
+                case TPNeg: cout << "-"; break;
+                default: break;
+            };
+            cout << ", ";
+            display_m (op->v->tag, op->v, false);
+            cout << ", ";
+            display_k (op->ok->tag, op->ok);
+            cout << ")";
+            break;
+        }
         case TKOp2: {
             KOp2* op = (KOp2*) k;
             cout << "op2 (";
+            switch (op->op) {
+                case TPAdd: cout << "+"; break;
+                case TPSub: cout << "-"; break;
+                default: break;
+            };
+            cout << ", ";
             display_m (op->v->tag, op->v, false);
             cout << ", ";
             display_m (op->m->tag, op->m, false);

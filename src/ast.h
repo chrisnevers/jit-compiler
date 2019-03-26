@@ -10,13 +10,16 @@ enum {
     TMLam = 4,
     TMClo = 5,
     TMPrm = 6,
-    TPAdd = 57,
+    TPSub = 50,
+    TPAdd = 51,
+    TPNeg = 52,
     TEMt  = 100,
     TEClo = 101,
     TKRet = 200,
     TKFn  = 201,
     TKArg = 202,
-    TKOp2 = 203,
+    TKOp1 = 203,
+    TKOp2 = 204,
 };
 
 struct E {
@@ -99,6 +102,13 @@ struct KFn {
 struct KArg {
     K k;
     M* m;
+    K* ok;
+};
+
+struct KOp1 {
+    K k;
+    int op;
+    M* v;
     K* ok;
 };
 

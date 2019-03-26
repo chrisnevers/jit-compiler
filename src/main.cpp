@@ -185,6 +185,25 @@ void cek () {
                         }
                         break;
                     }
+                    case TKOp1: {
+                        KOp1* op = (KOp1*) pk;
+                        MNum* val = (MNum*) malloc (sizeof (MNum));
+                        val->m = mk_m (TMNum);
+                        switch (op->op) {
+                            case TPNeg: {
+                                MNum* r = (MNum*) pc;
+                                val->val = - r->val;
+                                break;
+                            }
+                            default: {
+                                throw logic_error ("Unknown operator");
+                            }
+                        };
+                        pc = (size_t) val;
+                        pe = e_mt ();
+                        pk = op->ok;
+                        break;
+                    }
                     case TKOp2: {
                         KOp2* op = (KOp2*) pk;
                         // Solve second value now
@@ -209,6 +228,12 @@ void cek () {
                                     val->val = l->val + r->val;
                                     break;
                                 }
+                                case TPSub: {
+                                    MNum* l = (MNum*) op->v;
+                                    MNum* r = (MNum*) pc;
+                                    val->val = l->val - r->val;
+                                    break;
+                                }
                                 default: {
                                     throw logic_error ("Unknown operator");
                                 }
@@ -228,14 +253,32 @@ void cek () {
             }
             case TMPrm: {
                 MPrm* prm = (MPrm*) m;
-                KOp2* kop = (KOp2*) malloc (sizeof (KOp2));
-                kop->k  = mk_k (TKOp2);
-                kop->op = prm->op;
-                kop->m  = prm->ms[1];
-                kop->ok = pk;
-                kop->v  = m_nul ();
-                pc  = (size_t) prm->ms[0];
-                pk  = (K*) kop;
+                switch (prm->arity) {
+                    case 1: {
+                        KOp1* kop = (KOp1*) malloc (sizeof (KOp1));
+                        kop->k  = mk_k (TKOp1);
+                        kop->op = prm->op;
+                        kop->v  = m_nul();
+                        kop->ok = pk;
+                        pc = (size_t) prm->ms[0];
+                        pk = (K*) kop;
+                        break;
+                    }
+                    case 2: {
+                        KOp2* kop = (KOp2*) malloc (sizeof (KOp2));
+                        kop->k  = mk_k (TKOp2);
+                        kop->op = prm->op;
+                        kop->m  = prm->ms[1];
+                        kop->ok = pk;
+                        kop->v  = m_nul ();
+                        pc  = (size_t) prm->ms[0];
+                        pk  = (K*) kop;
+                        break;
+                    }
+                    default: {
+                        throw logic_error ("Unknown primitive operation arity");
+                    }
+                }
                 break;
             }
             default: {
@@ -324,6 +367,7 @@ void read_file (const char* filename) {
                 fscanf (fp, "%s", tmp);
                 node->op    = stoi (tmp, nullptr, 2);
                 switch (node->op) {
+                    case TPSub:
                     case TPAdd: {
                         fscanf (fp, "%s", tmp);
                         int l_p = stoi (tmp, nullptr, 2);
@@ -337,8 +381,18 @@ void read_file (const char* filename) {
                         i += 3;
                         break;
                     }
+                    case TPNeg: {
+                        fscanf (fp, "%s", tmp);
+                        int m_p = stoi (tmp, nullptr, 2);
+                        node->arity = 1;
+                        node->ms = (M**) malloc (sizeof (M*));
+                        node->ms[0] = (M*) heap[m_p];
+                        heap[i++]   = (size_t) node;
+                        i += 2;
+                        break;
+                    }
                     default: {
-                        throw logic_error ("Unknown primitiveo operator: "
+                        throw logic_error ("Unknown primitive operator: "
                             + to_string (node->op));
                     }
                 }
