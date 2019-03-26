@@ -34,10 +34,10 @@ let var_ctr = ref 0
 let var_to_id var =
   let open Hashtbl in
   match find_opt env var with
-  | Some i -> string_of_int i
+  | Some i -> i
   | None -> incr var_ctr;
     add env var !var_ctr;
-    string_of_int !var_ctr
+    !var_ctr
 
 let p s =
   let str = s ^ "\n" in
@@ -62,7 +62,7 @@ let rec gen exp =
   | Var v ->
     let line_no = !pc in
     let s1 = p "0010" in
-    let s2 = p (var_to_id v) in
+    let s2 = p (to_binary @@ var_to_id v) in
     line_no, s1 ^ s2
   | App (m, n) ->
     let ml, res1 = gen m in
@@ -76,7 +76,7 @@ let rec gen exp =
     let nl, res = gen n in
     let line_no = !pc in
     let s1 = p "0100" in
-    let s2 = p (var_to_id m) in
+    let s2 = p (to_binary @@ var_to_id m) in
     let s3 = p (to_binary nl) in
     line_no, res ^ s1 ^ s2 ^ s3
   | Op (o, es) -> match o with
@@ -100,7 +100,7 @@ let num_ex = Num 5
 
 let _ =
   let null = p "0000" in
-  let res = gen app_ex in
+  let res = gen nest_app_ex in
   let l, res = res in
   let out =
     to_binary !pc ^ "\n" ^

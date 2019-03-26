@@ -34,6 +34,17 @@ void display_m (int tag, M* m, bool nl) {
             cout << ")";
             break;
         }
+        case TMApp: {
+            MApp* app = (MApp*) m;
+            cout << "(";
+            display_m (app->fn->tag, app->fn, false);
+            cout << " ";
+            display_m (app->arg->tag, app->arg, false);
+            cout << ")";
+            // cout << "Fn Address: " << app->fn << endl;
+            // cout << "Arg Address: " << app->arg << endl;
+            break;
+        }
         default: {
             cout << "Unknown M" << endl;
             break;
@@ -50,6 +61,14 @@ void display_e (int tag, E* e) {
             cout << "*";
             break;
         }
+        case TEClo: {
+            EClo* clo = (EClo*) e;
+            display_e (clo->nxt->tag, clo->nxt);
+            cout << "[v" << clo->id << " → ";
+            display_m (clo->val->tag, clo->val, false);
+            cout << "]";
+            break;
+        }
         default: {
             cout << "Unknown E: " << tag;
             break;
@@ -60,7 +79,27 @@ void display_e (int tag, E* e) {
 void display_k (int tag, K* k) {
     switch (tag) {
         case TKRet: {
-            cout << "ret" << endl;
+            cout << "ret";
+            break;
+        }
+        case TKFn: {
+            KFn* fn = (KFn*) k;
+            cout << "fn (";
+            display_m (fn->m->tag, fn->m, false);
+            cout << ", ";
+            display_e (fn->e->tag, fn->e);
+            cout << ", ";
+            display_k (fn->ok->tag, fn->ok);
+            cout << ")";
+            break;
+        }
+        case TKArg: {
+            KArg* ar = (KArg*) k;
+            cout << "arg (";
+            display_m (ar->m->tag, ar->m, false);
+            cout << ", ";
+            display_k (ar->ok->tag, ar->ok);
+            cout << ")";
             break;
         }
         default: {

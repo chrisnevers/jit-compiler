@@ -10,10 +10,17 @@ enum {
     TMLam = 4,
     TMClo = 5,
     TEMt  = 100,
-    TKRet = 200
+    TEClo = 101,
+    TKRet = 200,
+    TKFn  = 201,
+    TKArg = 202
 };
 
 struct E {
+    int tag;
+};
+
+struct M {
     int tag;
 };
 
@@ -21,11 +28,14 @@ struct EMt {
     E e;
 };
 
-void display_e (int tag, E* e);
-
-struct M {
-    int tag;
+struct EClo {
+    E e;
+    int id;
+    M* val;
+    E* nxt;
 };
+
+void display_e (int tag, E* e);
 
 struct MNul {
     M m;
@@ -67,6 +77,19 @@ struct K {
 
 struct KRet {
     K k;
+};
+
+struct KFn {
+    K k;
+    M* m;
+    E* e;
+    K* ok;
+};
+
+struct KArg {
+    K k;
+    M* m;
+    K* ok;
 };
 
 void display_k (int tag, K* k);
