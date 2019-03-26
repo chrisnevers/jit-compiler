@@ -1,3 +1,7 @@
+open Lexer
+open Parser
+open Ast
+
 exception GenError of string
 let gen_error msg = raise (GenError msg)
 
@@ -6,12 +10,12 @@ let write_to_file fn s =
   output_string channel s;
   close_out channel
 
-type exp =
+(* type exp =
   | Var of string
   | Abs of string * exp
   | App of exp * exp
   | Num of int
-  | Op  of exp * exp list
+  | Op  of exp * exp list *)
 
 let env : (string, int) Hashtbl.t = Hashtbl.create 10
 
@@ -80,7 +84,7 @@ let rec gen exp =
     let s3 = p (to_binary nl) in
     line_no, res ^ s1 ^ s2 ^ s3
   | Op (o, es) -> match o with
-    | Var "+" ->
+    | "+" ->
       let [l; r] = es in
       let ll, res1 = gen l in
       let rl, res2 = gen r in
@@ -92,19 +96,42 @@ let rec gen exp =
       line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3 ^ s4
     | _ -> gen_error "unknown primitive operation"
 
-let add_ex = Op (Var "+", [Num 1; Num 2])
-let add2_ex = App (Abs ("x", Op (Var "+", [Num 1; Var "x"])), Num 5)
+let add_ex = Op ("+", [Num 1; Num 2])
+let add2_ex = App (Abs ("x", Op ("+", [Num 1; Var "x"])), Num 5)
 let abs_ex = Abs ("x", Var "x")
 let app_ex = App (Abs ("x", Var "x"), Num 6)
 let nest_app_ex = App (App (Abs ("x", Abs ("y", Var "y")), Num 4), Num 5)
 let num_ex = Num 5
 
+let load_file f =
+  let ic = open_in f in
+  let n = in_channel_length ic in
+  let s = Bytes.create n in
+  really_input ic s 0 n;
+  close_in ic;
+  Bytes.to_string s
+
+let compile filename =
+  let null    = p "0000" in
+  let str     = load_file filename in
+  let buffer  = Lexing.from_string str in
+  try
+    let ast = main token buffer in
+    let res = gen ast in
+    let l, res = res in
+    let out =
+      to_binary !pc ^ "\n" ^
+      to_binary (l) ^ "\n" ^
+      null ^ res in
+    write_to_file "tmp.byte" out
+  with
+  | Parser.Error ->
+    let position = Lexing.lexeme_start_p buffer in
+    Printf.eprintf "Parse Error (Line %d : Col %d): %s\n"
+      position.pos_lnum position.pos_cnum (Lexing.lexeme buffer)
+
 let _ =
-  let null = p "0000" in
-  let res = gen add2_ex in
-  let l, res = res in
-  let out =
-    to_binary !pc ^ "\n" ^
-    to_binary (l) ^ "\n" ^
-    null ^ res in
-  write_to_file "tmp.byte" out
+  if Array.length Sys.argv < 2 then
+    print_endline "Usage: ./compile {filename}"
+  else compile Sys.argv.(1)
+
