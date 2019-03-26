@@ -85,14 +85,15 @@ let rec gen exp =
       let ll, res1 = gen l in
       let rl, res2 = gen r in
       let line_no = !pc in
-      let s1 = p "0101" in
-      let s2 = p "1000" in
+      let s1 = p "0110" in
+      let s2 = p "111001" in
       let s3 = p (to_binary ll) in
       let s4 = p (to_binary rl) in
       line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3 ^ s4
     | _ -> gen_error "unknown primitive operation"
 
 let add_ex = Op (Var "+", [Num 1; Num 2])
+let add2_ex = App (Abs ("x", Op (Var "+", [Num 1; Var "x"])), Num 5)
 let abs_ex = Abs ("x", Var "x")
 let app_ex = App (Abs ("x", Var "x"), Num 6)
 let nest_app_ex = App (App (Abs ("x", Abs ("y", Var "y")), Num 4), Num 5)
@@ -100,7 +101,7 @@ let num_ex = Num 5
 
 let _ =
   let null = p "0000" in
-  let res = gen nest_app_ex in
+  let res = gen add2_ex in
   let l, res = res in
   let out =
     to_binary !pc ^ "\n" ^

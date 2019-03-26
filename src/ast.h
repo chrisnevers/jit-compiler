@@ -9,11 +9,14 @@ enum {
     TMApp = 3,
     TMLam = 4,
     TMClo = 5,
+    TMPrm = 6,
+    TPAdd = 57,
     TEMt  = 100,
     TEClo = 101,
     TKRet = 200,
     TKFn  = 201,
-    TKArg = 202
+    TKArg = 202,
+    TKOp2 = 203,
 };
 
 struct E {
@@ -69,6 +72,13 @@ struct MApp {
     M* arg;
 };
 
+struct MPrm {
+    M m;
+    int op;
+    int arity;
+    M** ms;
+};
+
 void display_m (int tag, M* m, bool nl=true);
 
 struct K {
@@ -88,6 +98,14 @@ struct KFn {
 
 struct KArg {
     K k;
+    M* m;
+    K* ok;
+};
+
+struct KOp2 {
+    K k;
+    int op;
+    M* v;
     M* m;
     K* ok;
 };

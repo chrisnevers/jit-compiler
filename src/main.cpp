@@ -10,8 +10,6 @@ size_t heap[heap_size] = {};
 int heap_max = heap_size - 1;
 
 size_t pc_i = 0;
-int pe = 0;
-int pk = 0;
 int pf = 0;
 
 char* alloc_bc () {
@@ -28,6 +26,12 @@ E mk_e (int tag) {
 
 K mk_k (int tag) {
     return (K) { .tag = tag };
+}
+
+M* m_nul () {
+    MNul* node  = (MNul*) malloc (sizeof (MNul));
+    node->m     = mk_m (TMNul);
+    return (M*) node;
 }
 
 E* e_mt () {
@@ -84,28 +88,32 @@ bool is_v (int tag) {
     }
 }
 
+void display_state (M* m, E* pe, K* pk) {
+    display_m (m->tag, m, false);
+    cout << ", ";
+    display_e (pe->tag, pe);
+    cout << ", ";
+    display_k (pk->tag, pk);
+    cout << endl;
+}
+
+void display_heap () {
+    for (int i = 0; i <= pf; ++i) {
+        cout << "HEAP[" << i << "]" << heap[i] << endl;
+    }
+}
+
 void cek () {
     E* pe = e_mt();
     K* pk = k_ret();
 
-    cout << "Starting CEK at " << pc_i;
     size_t pc = heap[pc_i];
-    cout << ": " << pc << endl;
 
     while (true) {
-        // cout << "Looping pc: " << pc << endl;
         M* m = (struct M*) pc;
         int tag = m->tag;
 
-        cout << "Tag: " << tag << endl;
-
-        display_m (m->tag, m, false);
-        cout << ", ";
-        display_e (pe->tag, pe);
-        cout << ", ";
-        display_k (pk->tag, pk);
-        cout << endl;
-
+        display_state ((M*)pc, pe, pk);
         // getchar();
 
         switch (tag) {
@@ -146,11 +154,10 @@ void cek () {
             case TMNul:
             case TMClo:
             case TMNum: {
-                pe = e_mt ();
                 switch (pk->tag) {
                     case TKRet: {
-                        if (is_v (tag) && pe->tag == TEMt) {
-                            cout << "Result: "; display_m (tag, (M*) pc);
+                        if (is_v (tag)) {
+                            display_m (tag, (M*) pc);
                             return;
                         }
                         break;
@@ -169,7 +176,6 @@ void cek () {
                             MLam* lam = (MLam*) clo->ex;
                             E* env = (clo->env->tag == TEMt)
                                 ? e_mt () : clo->env;
-                            // display_e (env->tag, env);
                             E* ne = e_clo (lam->id, (M*) pc, env);
                             pc = (size_t) lam->body;
                             pe = ne;
@@ -179,11 +185,57 @@ void cek () {
                         }
                         break;
                     }
+                    case TKOp2: {
+                        KOp2* op = (KOp2*) pk;
+                        // Solve second value now
+                        if (op->m->tag != TMNul) {
+                            KOp2* nk = (KOp2*) malloc (sizeof (KOp2));
+                            M* nul  = m_nul ();
+                            nk->k   = op->k;
+                            nk->op  = op->op;
+                            nk->v   = m;
+                            nk->m   = nul;
+                            nk->ok  = op->ok;
+                            pc = (size_t) op->m;
+                            pk = (K*) nk;
+                        } else {
+                            // Values have been computed
+                            MNum* val = (MNum*) malloc (sizeof (MNum));
+                            val->m      = mk_m (TMNum);
+                            switch (op->op) {
+                                case TPAdd: {
+                                    MNum* l = (MNum*) op->v;
+                                    MNum* r = (MNum*) pc;
+                                    val->val = l->val + r->val;
+                                    break;
+                                }
+                                default: {
+                                    throw logic_error ("Unknown operator");
+                                }
+                            };
+                            pc = (size_t) val;
+                            pe = e_mt ();
+                            pk = op->ok;
+                        }
+                        break;
+                    }
                     default: {
                         cout << "Unknown K tag: " << pk->tag << endl;
                         break;
                     }
                 }
+                break;
+            }
+            case TMPrm: {
+                MPrm* prm = (MPrm*) m;
+                KOp2* kop = (KOp2*) malloc (sizeof (KOp2));
+                kop->k  = mk_k (TKOp2);
+                kop->op = prm->op;
+                kop->m  = prm->ms[1];
+                kop->ok = pk;
+                kop->v  = m_nul ();
+                pc  = (size_t) prm->ms[0];
+                pk  = (K*) kop;
                 break;
             }
             default: {
@@ -266,19 +318,38 @@ void read_file (const char* filename) {
                 // display_m (TMApp, (M*)node);
                 break;
             }
+            case TMPrm: {
+                MPrm* node  = (MPrm*) malloc (sizeof (MPrm));
+                node->m     = mk_m (TMPrm);
+                fscanf (fp, "%s", tmp);
+                node->op    = stoi (tmp, nullptr, 2);
+                switch (node->op) {
+                    case TPAdd: {
+                        fscanf (fp, "%s", tmp);
+                        int l_p = stoi (tmp, nullptr, 2);
+                        fscanf (fp, "%s", tmp);
+                        int r_p = stoi (tmp, nullptr, 2);
+                        node->arity = 2;
+                        node->ms = (M**) malloc (2 * sizeof (M*));
+                        node->ms[0] = (M*) heap[l_p];
+                        node->ms[1] = (M*) heap[r_p];
+                        heap[i++]   = (size_t) node;
+                        i += 3;
+                        break;
+                    }
+                    default: {
+                        throw logic_error ("Unknown primitiveo operator: "
+                            + to_string (node->op));
+                    }
+                }
+
+                break;
+            }
             default: {
                 cout << "Unknown tag: " << tag << endl;
                 break;
             }
         }
-    }
-    // cout << "pf = " << i << endl;
-    // pf = i;
-
-    // cout << "PC: " << pc_i << endl;
-    // cout << "PF: " << pf << endl;
-    for (int i = 0; i <= pf; ++i) {
-        cout << "HEAP[" << i << "]" << heap[i] << endl;
     }
 
     return;

@@ -45,6 +45,22 @@ void display_m (int tag, M* m, bool nl) {
             // cout << "Arg Address: " << app->arg << endl;
             break;
         }
+        case TMPrm: {
+            MPrm* pr = (MPrm*) m;
+            switch (pr->op) {
+                case TPAdd: cout << "+";
+                default: break;
+            };
+            cout << "(";
+            for (int i = 0; i < pr->arity; ++i) {
+                display_m (pr->ms[i]->tag, pr->ms[i], false);
+                if (i + 1 != pr->arity) {
+                    cout << ", ";
+                }
+            }
+            cout << ")";
+            break;
+        }
         default: {
             cout << "Unknown M" << endl;
             break;
@@ -99,6 +115,17 @@ void display_k (int tag, K* k) {
             display_m (ar->m->tag, ar->m, false);
             cout << ", ";
             display_k (ar->ok->tag, ar->ok);
+            cout << ")";
+            break;
+        }
+        case TKOp2: {
+            KOp2* op = (KOp2*) k;
+            cout << "op2 (";
+            display_m (op->v->tag, op->v, false);
+            cout << ", ";
+            display_m (op->m->tag, op->m, false);
+            cout << ", ";
+            display_k (op->ok->tag, op->ok);
             cout << ")";
             break;
         }
