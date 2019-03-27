@@ -9,6 +9,7 @@
 %token APP
 %token ADD
 %token SUB
+%token LET EQ IN
 %token <int> NUM
 %token <string> ID
 
@@ -35,3 +36,4 @@ exp:
   | LPAREN exp RPAREN               { $2 }
   | exp exp %prec APP               { App ($1, $2) }
   | SUB exp %prec USUB              { Op ("-", [$2]) }
+  | LET ID EQ exp IN exp            { App (Abs ($2, $6), $4) }

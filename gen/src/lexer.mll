@@ -5,6 +5,9 @@
 rule token = parse
   | [' ' '\t' '\n'] { token lexbuf }
   | "λ"|"\\"|"fun"  { FUN }
+  | "let"           { LET }
+  | "="             { EQ }
+  | "in"            { IN }
   | "->"|"→"|"."    { ARROW }
   | "("             { LPAREN }
   | ")"             { RPAREN }

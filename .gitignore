@@ -3,3 +3,4 @@ _build/
 **/*.o
 main
 **/*.DS_Store
+tmp.byte
