@@ -99,7 +99,13 @@ void display_state (M* m, E* pe, K* pk) {
 
 void display_heap () {
     for (int i = 0; i <= pf; ++i) {
-        cout << "HEAP[" << i << "]" << heap[i] << endl;
+        if (heap[i] != 0) {
+            M* hi = (M*) heap[i];
+            cout << "HEAP[" << i << "]" << heap[i] << ": ";
+            display_m (hi->tag, hi);
+        } else {
+            cout << "HEAP[" << i << "]" << heap[i] << endl;
+        }
     }
 }
 
@@ -254,6 +260,23 @@ void cek () {
             case TMPrm: {
                 MPrm* prm = (MPrm*) m;
                 switch (prm->arity) {
+                    case 0: {
+                        switch (prm->op) {
+                            case TPRead: {
+                                int i = 0;
+                                scanf ("%d", &i);
+                                MNum* n = (MNum*) malloc (sizeof (MNum));
+                                n->m    = mk_m (TMNum);
+                                n->val  = i;
+                                pc = (size_t) n;
+                                break;
+                            }
+                            default: {
+                                throw logic_error ("Unknown primitive op");
+                            }
+                        }
+                        break;
+                    }
                     case 1: {
                         KOp1* kop = (KOp1*) malloc (sizeof (KOp1));
                         kop->k  = mk_k (TKOp1);
@@ -306,7 +329,6 @@ void read_file (const char* filename) {
             case TMNul: {
                 MNul* node  = (MNul*) malloc (sizeof (MNul));
                 node->m     = mk_m (TMNul);
-                // cout << "Inserting null at " << i << endl;
                 heap[i++]   = (size_t) node;
                 break;
             }
@@ -315,7 +337,6 @@ void read_file (const char* filename) {
                 MNum* node  = (MNum*) malloc (sizeof (MNum));
                 node->m     = mk_m (TMNum);
                 node->val   = stoi (tmp, nullptr, 2);
-                // cout << "Inserting Number at " << i << endl;
                 heap[i++]   = (size_t) node;
                 i++;
                 break;
@@ -338,7 +359,6 @@ void read_file (const char* filename) {
                 int ptr     = stoi (tmp, nullptr, 2);
                 node->body  = (M*) heap[ptr];
                 heap[i++]   = (size_t) node;
-                // cout << i << endl;
                 i += 2;
                 break;
             }
@@ -347,18 +367,12 @@ void read_file (const char* filename) {
                 node->m     = mk_m (TMApp);
                 fscanf (fp, "%s", tmp);
                 int fn_p    = stoi (tmp, nullptr, 2);
-                // cout << tmp << " : FN: " << fn_p << endl;
                 node->fn    = (M*) heap[fn_p];
-                // display_m (node->fn->tag, node->fn);
                 fscanf (fp, "%s", tmp);
                 int arg_p   = stoi (tmp, nullptr, 2);
-                // cout << tmp << " : ARG: " << arg_p << endl;
                 node->arg   = (M*) heap[arg_p];
-                // display_m (node->arg->tag, node->arg);
-                // cout << "App at " << i << endl;
                 heap[i++]   = (size_t) node;
                 i += 2;
-                // display_m (TMApp, (M*)node);
                 break;
             }
             case TMPrm: {
@@ -391,6 +405,12 @@ void read_file (const char* filename) {
                         i += 2;
                         break;
                     }
+                    case TPRead: {
+                        node->arity = 0;
+                        heap[i++] = (size_t) node;
+                        i++;
+                        break;
+                    }
                     default: {
                         throw logic_error ("Unknown primitive operator: "
                             + to_string (node->op));
@@ -405,6 +425,8 @@ void read_file (const char* filename) {
             }
         }
     }
+
+    // display_heap();
 
     return;
 }

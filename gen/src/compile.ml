@@ -56,6 +56,12 @@ let to_binary n =
   in
   String.concat "" (aux [] n)
 
+let gen_op0 op =
+  let line_no = !pc in
+  let s1 = p "0110" in
+  let s2 = p op in
+  line_no, s1 ^ s2
+
 let rec gen exp =
   match exp with
   | Num n ->
@@ -63,6 +69,7 @@ let rec gen exp =
     let s1 = p "0001" in
     let s2 = p (to_binary n) in
     line_no, s1 ^ s2
+  | Var "read" -> gen_op0 "110101"
   | Var v ->
     let line_no = !pc in
     let s1 = p "0010" in
@@ -91,6 +98,7 @@ let rec gen exp =
       end
     | "+" -> gen_op2 "110011" es
     | _ -> gen_error "unknown primitive operation"
+
 
 and gen_op1 op es =
   let [l] = es in
