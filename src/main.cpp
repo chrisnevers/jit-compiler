@@ -1,20 +1,24 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "ast.h"
 
 using namespace std;
 
-const int heap_size = 1 << 14;
-size_t heap[heap_size] = {};
-int heap_max = heap_size - 1;
+bool debug = true;
 
-size_t pc_i = 0;
-int pf = 0;
+// Temp string for reading in bytecode
+char* tmp = (char*) malloc (8 * sizeof (char));
+char* mm;       // Mapped memory location
+int fd, fs;     // File descriptor and file size of byte code file
 
-char* alloc_bc () {
-    return (char*) malloc (sizeof(char) * 4);
-}
+size_t *heap;
+size_t pc = 0;
+size_t pf = 0;
 
 M mk_m (int tag) {
     return (M) { .tag = tag };
@@ -28,8 +32,12 @@ K mk_k (int tag) {
     return (K) { .tag = tag };
 }
 
+void* malloc1 (int size) {
+    return malloc (size);
+}
+
 M* m_nul () {
-    MNul* node  = (MNul*) malloc (sizeof (MNul));
+    MNul* node  = (MNul*) malloc1 (sizeof (MNul));
     node->m     = mk_m (TMNul);
     return (M*) node;
 }
@@ -72,14 +80,6 @@ K* k_arg (M* m, K* ok) {
     return (K*) node;
 }
 
-int alloc (int size) {
-    if (pf + size > heap_max) {
-        throw logic_error ("Out of memory");
-    }
-    pf += size;
-    return pf - size;
-}
-
 bool is_v (int tag) {
     switch (tag) {
         case TMNum: return true;
@@ -98,14 +98,9 @@ void display_state (M* m, E* pe, K* pk) {
 }
 
 void display_heap () {
-    for (int i = 0; i <= pf; ++i) {
-        if (heap[i] != 0) {
-            M* hi = (M*) heap[i];
-            cout << "HEAP[" << i << "]" << heap[i] << ": ";
-            display_m (hi->tag, hi);
-        } else {
-            cout << "HEAP[" << i << "]" << heap[i] << endl;
-        }
+    cout << "PF: " << pf << endl;
+    for (int i = 0; i < pf * 8 + 16; i+= 8) {
+        printf ("%d (%d): %.8s\n", i / 8, i, mm + i);
     }
 }
 
@@ -113,14 +108,11 @@ void cek () {
     E* pe = e_mt();
     K* pk = k_ret();
 
-    size_t pc = heap[pc_i];
-
     while (true) {
         M* m = (struct M*) pc;
         int tag = m->tag;
 
         display_state ((M*)pc, pe, pk);
-        // getchar();
 
         switch (tag) {
             case TMLam: {
@@ -133,7 +125,7 @@ void cek () {
                 break;
             }
             case TMApp: {
-                MApp* app   = (MApp*) m;
+                MApp* app = (MApp*) m;
                 pc = (size_t) app->fn;
                 pk = k_fn (app->arg, pe, pk);
                 break;
@@ -311,128 +303,107 @@ void cek () {
     }
 }
 
-void read_file (const char* filename) {
-    FILE *fp;
-    fp = fopen (filename, "r");
+int get_file_size (const char* filename) {
+    struct stat buf;
+    stat (filename, &buf);
+    return buf.st_size;
+}
 
-    char* tmp = alloc_bc ();
-    fscanf (fp, "%s", tmp);
-    pf = stoi (tmp, nullptr, 2);
-    fscanf (fp, "%s", tmp);
-    pc_i = stoi (tmp, nullptr, 2);
+int get_int (char* tmp, int pos, int off) {
+    sprintf (tmp, "%.8s", mm + (pos + off + 2) * 8);
+    return stoi (tmp, nullptr, 2);
+}
 
-    int i = 0;
-
-    while (fscanf (fp, "%s", tmp) != EOF) {
-        int tag = stoi (tmp, nullptr, 2);
-        switch (tag) {
-            case TMNul: {
-                MNul* node  = (MNul*) malloc (sizeof (MNul));
-                node->m     = mk_m (TMNul);
-                heap[i++]   = (size_t) node;
-                break;
-            }
-            case TMNum: {
-                fscanf (fp, "%s", tmp);
-                MNum* node  = (MNum*) malloc (sizeof (MNum));
-                node->m     = mk_m (TMNum);
-                node->val   = stoi (tmp, nullptr, 2);
-                heap[i++]   = (size_t) node;
-                i++;
-                break;
-            }
-            case TMVar: {
-                fscanf (fp, "%s", tmp);
-                MVar* node  = (MVar*) malloc (sizeof (MVar));
-                node->m     = mk_m (TMVar);
-                node->id    = stoi (tmp, nullptr, 2);
-                heap[i++]   = (size_t) node;
-                i++;
-                break;
-            }
-            case TMLam: {
-                fscanf (fp, "%s", tmp);
-                MLam* node  = (MLam*) malloc (sizeof (MLam));
-                node->m     = mk_m (TMLam);
-                node->id    = stoi (tmp, nullptr, 2);
-                fscanf (fp, "%s", tmp);
-                int ptr     = stoi (tmp, nullptr, 2);
-                node->body  = (M*) heap[ptr];
-                heap[i++]   = (size_t) node;
-                i += 2;
-                break;
-            }
-            case TMApp: {
-                MApp* node  = (MApp*) malloc (sizeof (MApp));
-                node->m     = mk_m (TMApp);
-                fscanf (fp, "%s", tmp);
-                int fn_p    = stoi (tmp, nullptr, 2);
-                node->fn    = (M*) heap[fn_p];
-                fscanf (fp, "%s", tmp);
-                int arg_p   = stoi (tmp, nullptr, 2);
-                node->arg   = (M*) heap[arg_p];
-                heap[i++]   = (size_t) node;
-                i += 2;
-                break;
-            }
-            case TMPrm: {
-                MPrm* node  = (MPrm*) malloc (sizeof (MPrm));
-                node->m     = mk_m (TMPrm);
-                fscanf (fp, "%s", tmp);
-                node->op    = stoi (tmp, nullptr, 2);
-                switch (node->op) {
-                    case TPSub:
-                    case TPAdd: {
-                        fscanf (fp, "%s", tmp);
-                        int l_p = stoi (tmp, nullptr, 2);
-                        fscanf (fp, "%s", tmp);
-                        int r_p = stoi (tmp, nullptr, 2);
-                        node->arity = 2;
-                        node->ms = (M**) malloc (2 * sizeof (M*));
-                        node->ms[0] = (M*) heap[l_p];
-                        node->ms[1] = (M*) heap[r_p];
-                        heap[i++]   = (size_t) node;
-                        i += 3;
-                        break;
-                    }
-                    case TPNeg: {
-                        fscanf (fp, "%s", tmp);
-                        int m_p = stoi (tmp, nullptr, 2);
-                        node->arity = 1;
-                        node->ms = (M**) malloc (sizeof (M*));
-                        node->ms[0] = (M*) heap[m_p];
-                        heap[i++]   = (size_t) node;
-                        i += 2;
-                        break;
-                    }
-                    case TPRead: {
-                        node->arity = 0;
-                        heap[i++] = (size_t) node;
-                        i++;
-                        break;
-                    }
-                    default: {
-                        throw logic_error ("Unknown primitive operator: "
-                            + to_string (node->op));
-                    }
-                }
-
-                break;
-            }
-            default: {
-                cout << "Unknown tag: " << tag << endl;
-                break;
-            }
+M* load_obj (int pos) {
+    int op = get_int (tmp, pos, 0);
+    switch (op) {
+        case TMNul: return m_nul ();
+        case TMNum: {
+            MNum* n = (MNum*) malloc1 (sizeof (MNum));
+            n->m    = mk_m (TMNum);
+            n->val  = get_int (tmp, pos, 1);
+            return (M*) n;
         }
-    }
+        case TMVar: {
+            MVar* n = (MVar*) malloc1 (sizeof (MVar));
+            n->m    = mk_m (TMVar);
+            n->id   = get_int (tmp, pos, 1);
+            return (M*) n;
+        }
+        case TMApp: {
+            MApp* n = (MApp*) malloc1 (sizeof (MApp));
+            n->m    = mk_m (TMApp);
+            n->fn   = load_obj (get_int (tmp, pos, 1));
+            n->arg  = load_obj (get_int (tmp, pos, 2));
+            return (M*) n;
+        }
+        case TMLam: {
+            MLam* n = (MLam*) malloc1 (sizeof (MLam));
+            n->m    = mk_m (TMLam);
+            n->id   = get_int (tmp, pos, 1);
+            n->body = load_obj (get_int (tmp, pos, 2));
+            return (M*) n;
+        }
+        case TMPrm: {
+            MPrm* n = (MPrm*) malloc1 (sizeof (MPrm));
+            n->m    = mk_m (TMPrm);
+            n->op   = get_int (tmp, pos, 1);
+            switch (n->op) {
+                case TPSub:
+                case TPAdd: {
+                    n->arity = 2;
+                    n->ms    = (M**) malloc1 (2 * sizeof (M*));
+                    n->ms[0] = load_obj (get_int (tmp, pos, 2));
+                    n->ms[1] = load_obj (get_int (tmp, pos, 3));
+                    break;
+                }
+                case TPNeg: {
+                    n->arity = 1;
+                    n->ms    = (M**) malloc1 (sizeof (M*));
+                    n->ms[0] = load_obj (get_int (tmp, pos, 2));
+                    break;
+                }
+                case TPRead: {
+                    n->arity = 0;
+                    break;
+                }
+                default: throw logic_error ("Unknown primitive operator");
+            }
+            return (M*) n;
+        }
+        default: {
+            throw logic_error ("Unknown M Tag in byte code");
+        }
+    };
+}
 
-    // display_heap();
+void read_file (const char* filename) {
+
+    // Map file into memory
+    fd = open (filename, 0);
+    fs = get_file_size (filename);
+    mm = (char*) mmap (NULL, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    // Read in length of byte code (pf)
+    // and starting instruction (pc)
+    pf      = get_int (tmp, -2, 0);;
+    int pos = get_int (tmp, -1, 0);
+
+    // Load structures for program
+    pc = (size_t) load_obj (pos);
 
     return;
 }
 
+void clean_up () {
+    munmap (mm, fs);
+    close (fd);
+}
+
 int main () {
-    read_file ("tmp.byte");
+    const char* filename = "tmp.byte";
+    read_file (filename);
     cek ();
+    clean_up ();
     return 0;
 }
