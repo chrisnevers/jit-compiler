@@ -168,3 +168,19 @@ void display_k (int tag, K* k) {
         }
     }
 }
+
+void display_state (M* m, E* pe, K* pk) {
+    display_m (m->tag, m, false);
+    cout << ", ";
+    display_e (pe->tag, pe);
+    cout << ", ";
+    display_k (pk->tag, pk);
+    cout << endl;
+}
+
+void display_heap (int pf, char* mm) {
+    cout << "PF: " << pf << endl;
+    for (int i = 0; i < pf * 8 + 16; i+= 8) {
+        printf ("%d (%d): %.8s\n", i / 8, i, mm + i);
+    }
+}

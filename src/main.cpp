@@ -1,108 +1,30 @@
 #include <iostream>
-#include <string>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+
 #include "ast.h"
+#include "gc.h"
 
 using namespace std;
 
 bool debug = true;
 
-// Temp string for reading in bytecode
+// Temp string for reading memory
 char* tmp = (char*) malloc (8 * sizeof (char));
 char* mm;       // Mapped memory location
-int fd, fs;     // File descriptor and file size of byte code file
+int fd;         // Bytecode program file descriptor
+int fs;         // Bytecode program file size
 
-size_t *heap;
+// Initialize garbage collector heap
+const size_t heap_size = 1 << 14;
+size_t heap[heap_size] = {};
+size_t heap_max = heap_size - 1;
+
 size_t pc = 0;
 size_t pf = 0;
-
-M mk_m (int tag) {
-    return (M) { .tag = tag };
-}
-
-E mk_e (int tag) {
-    return (E) { .tag = tag };
-}
-
-K mk_k (int tag) {
-    return (K) { .tag = tag };
-}
-
-void* malloc1 (int size) {
-    return malloc (size);
-}
-
-M* m_nul () {
-    MNul* node  = (MNul*) malloc1 (sizeof (MNul));
-    node->m     = mk_m (TMNul);
-    return (M*) node;
-}
-
-E* e_mt () {
-    EMt* node   = (EMt*) malloc (sizeof (EMt));
-    node->e     = mk_e (TEMt);
-    return (E*) node;
-}
-
-E* e_clo (int id, M* val, E* next) {
-    EClo* node  = (EClo*) malloc (sizeof (EClo));
-    node->e     = mk_e (TEClo);
-    node->id    = id;
-    node->val   = val;
-    node->nxt   = next;
-    return (E*) node;
-}
-
-K* k_ret () {
-    KRet* node  = (KRet*) malloc (sizeof (KRet));
-    node->k     = mk_k (TKRet);
-    return (K*) node;
-}
-
-K* k_fn (M* m, E* e, K* ok) {
-    KFn* node   = (KFn*) malloc (sizeof (KFn));
-    node->k     = mk_k (TKFn);
-    node->m     = m;
-    node->e     = e;
-    node->ok    = ok;
-    return (K*) node;
-}
-
-K* k_arg (M* m, K* ok) {
-    KArg* node   = (KArg*) malloc (sizeof (KArg));
-    node->k     = mk_k (TKArg);
-    node->m     = m;
-    node->ok    = ok;
-    return (K*) node;
-}
-
-bool is_v (int tag) {
-    switch (tag) {
-        case TMNum: return true;
-        case TMClo: return true;
-        default: return false;
-    }
-}
-
-void display_state (M* m, E* pe, K* pk) {
-    display_m (m->tag, m, false);
-    cout << ", ";
-    display_e (pe->tag, pe);
-    cout << ", ";
-    display_k (pk->tag, pk);
-    cout << endl;
-}
-
-void display_heap () {
-    cout << "PF: " << pf << endl;
-    for (int i = 0; i < pf * 8 + 16; i+= 8) {
-        printf ("%d (%d): %.8s\n", i / 8, i, mm + i);
-    }
-}
 
 void cek () {
     E* pe = e_mt();
@@ -401,8 +323,7 @@ void clean_up () {
 }
 
 int main () {
-    const char* filename = "tmp.byte";
-    read_file (filename);
+    read_file ("tmp.byte");
     cek ();
     clean_up ();
     return 0;

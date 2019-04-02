@@ -130,4 +130,19 @@ struct KOp2 {
 
 void display_k (int tag, K* k);
 
+void display_state (M* m, E* pe, K* pk);
+void display_heap ();
+
+bool is_v (int tag);
+
+M mk_m (int tag);
+E mk_e (int tag);
+K mk_k (int tag);
+M* m_nul ();
+E* e_mt ();
+E* e_clo (int id, M* val, E* next);
+K* k_ret ();
+K* k_fn (M* m, E* e, K* ok);
+K* k_arg (M* m, K* ok);
+
 #endif
