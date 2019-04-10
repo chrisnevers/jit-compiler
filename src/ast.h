@@ -1,6 +1,7 @@
 #ifndef AST_HEADER
 #define AST_HEADER
 
+#include <iostream>
 
 enum {
     TMNul = 0,
@@ -25,11 +26,11 @@ enum {
 };
 
 struct E {
-    int tag;
+    size_t tag;
 };
 
 struct M {
-    int tag;
+    size_t tag;
 };
 
 struct EMt {
@@ -38,12 +39,12 @@ struct EMt {
 
 struct EClo {
     E e;
-    int id;
+    size_t id;
     M* val;
     E* nxt;
 };
 
-void display_e (int tag, E* e);
+void display_e (size_t tag, E* e);
 
 struct MNul {
     M m;
@@ -51,12 +52,12 @@ struct MNul {
 
 struct MNum {
     M m;
-    int val;
+    size_t val;
 };
 
 struct MVar {
     M m;
-    int id;
+    size_t id;
 };
 
 struct MClo {
@@ -67,7 +68,7 @@ struct MClo {
 
 struct MLam {
     M m;
-    int id;
+    size_t id;
     M* body;
 };
 
@@ -79,15 +80,15 @@ struct MApp {
 
 struct MPrm {
     M m;
-    int op;
-    int arity;
+    size_t op;
+    size_t arity;
     M** ms;
 };
 
-void display_m (int tag, M* m, bool nl=true);
+void display_m (size_t tag, M* m, bool nl=true);
 
 struct K {
-    int tag;
+    size_t tag;
 };
 
 struct KRet {
@@ -109,40 +110,40 @@ struct KArg {
 
 struct KOp0 {
     K k;
-    int op;
+    size_t op;
     K* ok;
 };
 
 struct KOp1 {
     K k;
-    int op;
+    size_t op;
     M* v;
     K* ok;
 };
 
 struct KOp2 {
     K k;
-    int op;
+    size_t op;
     M* v;
     M* m;
     K* ok;
 };
 
-void display_k (int tag, K* k);
+void display_k (size_t tag, K* k);
 
 void display_state (M* m, E* pe, K* pk);
 void display_heap ();
 
-bool is_v (int tag);
+bool is_v (size_t tag);
 
-M mk_m (int tag);
-E mk_e (int tag);
-K mk_k (int tag);
+M mk_m (size_t tag);
+E mk_e (size_t tag);
+K mk_k (size_t tag);
 M* m_nul ();
 E* e_mt ();
-E* e_clo (int id, M* val, E* next);
+E* e_clo (size_t id, M* val, E* next);
 K* k_ret ();
-K* k_fn (M* m, E* e, K* ok);
-K* k_arg (M* m, K* ok);
+K* k_fn (M** m, E** e, K** ok);
+K* k_arg (M* m, K** ok);
 
 #endif

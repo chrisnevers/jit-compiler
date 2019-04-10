@@ -4,3 +4,4 @@ _build/
 main
 **/*.DS_Store
 tmp.byte
+notes

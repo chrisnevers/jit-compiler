@@ -3,7 +3,7 @@
 
 using namespace std;
 
-void display_m (int tag, M* m, bool nl) {
+void display_m (size_t tag, M* m, bool nl) {
     switch (tag) {
         case TMNul: {
             cout << "⊥";
@@ -55,7 +55,7 @@ void display_m (int tag, M* m, bool nl) {
                 default: break;
             };
             cout << "(";
-            for (int i = 0; i < pr->arity; ++i) {
+            for (size_t i = 0; i < pr->arity; ++i) {
                 display_m (pr->ms[i]->tag, pr->ms[i], false);
                 if (i + 1 != pr->arity) {
                     cout << ", ";
@@ -74,7 +74,7 @@ void display_m (int tag, M* m, bool nl) {
     }
 }
 
-void display_e (int tag, E* e) {
+void display_e (size_t tag, E* e) {
     switch (tag) {
         case TEMt: {
             cout << "*";
@@ -95,7 +95,7 @@ void display_e (int tag, E* e) {
     }
 }
 
-void display_k (int tag, K* k) {
+void display_k (size_t tag, K* k) {
     switch (tag) {
         case TKRet: {
             cout << "ret";
