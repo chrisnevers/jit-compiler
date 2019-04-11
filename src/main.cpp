@@ -41,7 +41,7 @@ void cek () {
         M* m = pc;
         int tag = m->tag;
 
-        display_state (pc, pe, pk);
+        // display_state (pc, pe, pk);
 
         switch (tag) {
             case TMLam: {
