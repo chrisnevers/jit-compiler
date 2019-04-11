@@ -22,7 +22,6 @@
 %token FST SND
 %token IF ELSE
 %token LET EQ IN
-%token LBRACKET RBRACKET
 %token <int> NUM
 %token <bool> BOOL
 %token <string> ID
