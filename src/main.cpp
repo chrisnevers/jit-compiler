@@ -19,14 +19,14 @@ int fd;         // Bytecode program file descriptor
 int fs;         // Bytecode program file size
 
 // Initialize garbage collector heap
-size_t heap[heap_size] = {};
+char heap[heap_size] = {};
 size_t heap_max = heap_size - 1;
 
-size_t* from_space_begin = heap;
-size_t* from_space_end = heap + (heap_size / 2) - 1;
-size_t* to_space_begin = heap + (heap_size / 2);
-size_t* to_space_end = heap + heap_size;
-size_t* free_ptr = from_space_begin;
+char* from_space_begin = heap;
+char* from_space_end = heap + (heap_size / 2) - 1;
+char* to_space_begin = heap + (heap_size / 2);
+char* to_space_end = heap + heap_size;
+char* free_ptr = from_space_begin;
 
 size_t pf = 0;
 M* pc = 0;
@@ -36,16 +36,17 @@ K* pk;
 void cek () {
     pe = e_mt();
     pk = k_ret();
+    // print_space(from_space_begin, from_space_end, "FROM");
 
     while (true) {
         M* m = pc;
-        int tag = m->tag;
+        size_t tag = m->tag;
 
-        // display_state (pc, pe, pk);
+        display_state (pc, pe, pk);
 
         switch (tag) {
             case TMLam: {
-                MClo* clo   = (MClo*) malloc1 (3);
+                MClo* clo   = (MClo*) malloc1 (sizeof(MClo));
                 clo->m      = mk_m (TMClo);
                 clo->ex     = pc;
                 clo->env    = pe;
@@ -54,13 +55,18 @@ void cek () {
                 break;
             }
             case TMApp: {
-                MApp* app = (MApp*) m;
+                KFn* node   = (KFn*) malloc1 (sizeof(KFn));
+                MApp* app = (MApp*) pc;
+                node->k = mk_k (TKFn);
+                node->m = app->arg;
+                node->e = pe;
+                node->ok = pk;
                 pc = app->fn;
-                pk = k_fn (&app->arg, &pe, &pk);
+                pk = (K*) node;
                 break;
             }
             case TMVar: {
-                MVar* var = (MVar*) m;
+                MVar* var = (MVar*) pc;
                 E* e = pe;
                 M* old_pc = pc;
                 while (e->tag != TEMt) {
@@ -81,7 +87,8 @@ void cek () {
             case TMNul:
             case TMClo:
             case TMNum: {
-                switch (pk->tag) {
+                size_t k_tag = pk->tag;
+                switch (k_tag) {
                     case TKRet: {
                         if (is_v (tag)) {
                             display_m (tag, (M*) pc);
@@ -90,8 +97,12 @@ void cek () {
                         break;
                     }
                     case TKFn: {
+                        KArg* node   = (KArg*) malloc1 (sizeof(KArg));
                         KFn* fn = (KFn*) pk;
-                        pk = k_arg (pc, &fn->ok);
+                        node->k = mk_k (TKArg);
+                        node->m = pc;
+                        node->ok = fn->ok;
+                        pk = (K*) node;
                         pc = fn->m;
                         pe = fn->e;
                         break;
@@ -99,13 +110,18 @@ void cek () {
                     case TKArg: {
                         KArg* ar = (KArg*) pk;
                         if (ar->m->tag == TMClo) {
+                            EClo* node  = (EClo*) malloc1 (sizeof(EClo));
+                            ar = (KArg*) pk;
                             MClo* clo = (MClo*) ar->m;
                             MLam* lam = (MLam*) clo->ex;
                             E* env = (clo->env->tag == TEMt)
                                 ? e_mt () : clo->env;
-                            E* ne = e_clo (lam->id, (M*) pc, env);
+                            node->e  = mk_e (TEClo);
+                            node->id = lam->id;
+                            node->val = pc;
+                            node->nxt = env;
                             pc = lam->body;
-                            pe = ne;
+                            pe = (E*) node;
                             pk = ar->ok;
                         } else {
                             throw logic_error ("Expected Closure in KArg");
@@ -113,7 +129,7 @@ void cek () {
                         break;
                     }
                     case TKOp1: {
-                        MNum* val = (MNum*) malloc1 (2);
+                        MNum* val = (MNum*) malloc1 (sizeof(MNum));
                         KOp1* op = (KOp1*) pk;
                         val->m = mk_m (TMNum);
                         switch (op->op) {
@@ -135,7 +151,7 @@ void cek () {
                         KOp2** op = (KOp2**) &pk;
                         // Solve second value now
                         if ((*op)->m->tag != TMNul) {
-                            KOp2* nk = (KOp2*) malloc1 (5);
+                            KOp2* nk = (KOp2*) malloc1 (sizeof(KOp2));
                             nk->k   = (*op)->k;
                             nk->op  = (*op)->op;
                             nk->v   = pc;
@@ -145,7 +161,7 @@ void cek () {
                             pk = (K*) nk;
                         } else {
                             // Values have been computed
-                            MNum* val = (MNum*) malloc1 (2);
+                            MNum* val = (MNum*) malloc1 (sizeof(MNum));
                             val->m      = mk_m (TMNum);
                             switch ((*op)->op) {
                                 case TPAdd: {
@@ -185,7 +201,7 @@ void cek () {
                             case TPRead: {
                                 int i = 0;
                                 scanf ("%d", &i);
-                                MNum* n = (MNum*) malloc1 (2);
+                                MNum* n = (MNum*) malloc1 (sizeof(MNum));
                                 n->m    = mk_m (TMNum);
                                 n->val  = i;
                                 pc = (M*) n;
@@ -198,22 +214,24 @@ void cek () {
                         break;
                     }
                     case 1: {
-                        KOp1* kop = (KOp1*) malloc1 (4);
+                        M* nul = m_nul ();
+                        KOp1* kop = (KOp1*) malloc1 (sizeof(KOp1));
                         kop->k  = mk_k (TKOp1);
                         kop->op = (*prm)->op;
-                        kop->v  = m_nul();
+                        kop->v  = nul;
                         kop->ok = pk;
                         pc = (*prm)->ms[0];
                         pk = (K*) kop;
                         break;
                     }
                     case 2: {
-                        KOp2* kop = (KOp2*) malloc1 (5);
+                        M* nul = m_nul ();
+                        KOp2* kop = (KOp2*) malloc1 (sizeof(KOp2));
                         kop->k  = mk_k (TKOp2);
                         kop->op = (*prm)->op;
                         kop->m  = (*prm)->ms[1];
                         kop->ok = pk;
-                        kop->v  = m_nul ();
+                        kop->v  = nul;
                         pc  = (*prm)->ms[0];
                         pk  = (K*) kop;
                         break;
@@ -247,47 +265,47 @@ M* load_obj (int pos) {
     switch (op) {
         case TMNul: return m_nul ();
         case TMNum: {
-            MNum* n = (MNum*) malloc1 (2);
+            MNum* n = (MNum*) malloc1 (sizeof(MNum));
             n->m    = mk_m (TMNum);
             n->val  = get_int (tmp, pos, 1);
             return (M*) n;
         }
         case TMVar: {
-            MVar* n = (MVar*) malloc1 (2);
+            MVar* n = (MVar*) malloc1 (sizeof(MVar));
             n->m    = mk_m (TMVar);
             n->id   = get_int (tmp, pos, 1);
             return (M*) n;
         }
         case TMApp: {
-            MApp* n = (MApp*) malloc1 (3);
+            MApp* n = (MApp*) malloc1 (sizeof(MApp));
             n->m    = mk_m (TMApp);
             n->fn   = load_obj (get_int (tmp, pos, 1));
             n->arg  = load_obj (get_int (tmp, pos, 2));
             return (M*) n;
         }
         case TMLam: {
-            MLam* n = (MLam*) malloc1 (3);
+            MLam* n = (MLam*) malloc1 (sizeof(MLam));
             n->m    = mk_m (TMLam);
             n->id   = get_int (tmp, pos, 1);
             n->body = load_obj (get_int (tmp, pos, 2));
             return (M*) n;
         }
         case TMPrm: {
-            MPrm* n = (MPrm*) malloc1 (4);
+            MPrm* n = (MPrm*) malloc1 (sizeof(MPrm));
             n->m    = mk_m (TMPrm);
             n->op   = get_int (tmp, pos, 1);
             switch (n->op) {
                 case TPSub:
                 case TPAdd: {
                     n->arity = 2;
-                    n->ms    = (M**) malloc1 (2);
+                    n->ms    = (M**) malloc1 (sizeof(M*) * 2);
                     n->ms[0] = load_obj (get_int (tmp, pos, 2));
                     n->ms[1] = load_obj (get_int (tmp, pos, 3));
                     break;
                 }
                 case TPNeg: {
                     n->arity = 1;
-                    n->ms    = (M**) malloc1 (1);
+                    n->ms    = (M**) malloc1 (sizeof(M*));
                     n->ms[0] = load_obj (get_int (tmp, pos, 2));
                     break;
                 }

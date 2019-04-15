@@ -65,7 +65,7 @@ void display_m (size_t tag, M* m, bool nl) {
             break;
         }
         default: {
-            cout << "Unknown M" << endl;
+            cout << "Unknown M: " << tag << endl;
             break;
         }
     }
@@ -163,7 +163,7 @@ void display_k (size_t tag, K* k) {
             break;
         }
         default: {
-            cout << "Unknown K" << endl;
+            cout << "Unknown K: " << tag << endl;
             break;
         }
     }

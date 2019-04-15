@@ -39,9 +39,9 @@ struct EMt {
 
 struct EClo {
     E e;
-    size_t id;
     M* val;
     E* nxt;
+    int id;
 };
 
 void display_e (size_t tag, E* e);
@@ -52,12 +52,12 @@ struct MNul {
 
 struct MNum {
     M m;
-    size_t val;
+    int val;
 };
 
 struct MVar {
     M m;
-    size_t id;
+    int id;
 };
 
 struct MClo {
@@ -68,8 +68,8 @@ struct MClo {
 
 struct MLam {
     M m;
-    size_t id;
     M* body;
+    int id;
 };
 
 struct MApp {
@@ -80,9 +80,9 @@ struct MApp {
 
 struct MPrm {
     M m;
-    size_t op;
-    size_t arity;
     M** ms;
+    int arity;
+    char op;
 };
 
 void display_m (size_t tag, M* m, bool nl=true);
@@ -110,23 +110,23 @@ struct KArg {
 
 struct KOp0 {
     K k;
-    size_t op;
     K* ok;
+    char op;
 };
 
 struct KOp1 {
     K k;
-    size_t op;
     M* v;
     K* ok;
+    char op;
 };
 
 struct KOp2 {
     K k;
-    size_t op;
     M* v;
     M* m;
     K* ok;
+    char op;
 };
 
 void display_k (size_t tag, K* k);
@@ -141,9 +141,7 @@ E mk_e (size_t tag);
 K mk_k (size_t tag);
 M* m_nul ();
 E* e_mt ();
-E* e_clo (size_t id, M* val, E* next);
 K* k_ret ();
 K* k_fn (M** m, E** e, K** ok);
-K* k_arg (M* m, K** ok);
 
 #endif

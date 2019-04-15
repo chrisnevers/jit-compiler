@@ -22,45 +22,19 @@ K mk_k (size_t tag) {
 }
 
 M* m_nul () {
-    MNul* node  = (MNul*) malloc1 (1);
+    MNul* node  = (MNul*) malloc1 (sizeof(MNul));
     node->m     = mk_m (TMNul);
     return (M*) node;
 }
 
 E* e_mt () {
-    EMt* node   = (EMt*) malloc1 (1);
+    EMt* node   = (EMt*) malloc1 (sizeof(EMt));
     node->e     = mk_e (TEMt);
     return (E*) node;
 }
 
-E* e_clo (size_t id, M* val, E* next) {
-    EClo* node  = (EClo*) malloc1 (4);
-    node->e     = mk_e (TEClo);
-    node->id    = id;
-    node->val   = val;
-    node->nxt   = next;
-    return (E*) node;
-}
-
 K* k_ret () {
-    KRet* node  = (KRet*) malloc1 (1);
+    KRet* node  = (KRet*) malloc1 (sizeof(KRet));
     node->k     = mk_k (TKRet);
-    return (K*) node;
-}
-
-K* k_fn (M** m, E** e, K** ok) {
-    KFn* node   = (KFn*) malloc1 (4);
-    node->k     = mk_k (TKFn);
-    node->m     = *m;
-    node->e     = *e;
-    node->ok    = *ok;
-    return (K*) node;
-}
-
-K* k_arg (M* m, K** ok) {
-    KArg* node   = (KArg*) malloc1 (3);
-    node->k     = mk_k (TKArg);
-    node->m     = m;
-    node->ok    = *ok;
     return (K*) node;
 }
