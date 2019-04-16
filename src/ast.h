@@ -11,10 +11,16 @@ enum {
     TMLam = 4,
     TMClo = 5,
     TMPrm = 6,
+    TMTru = 7,
+    TMFals = 8,
+    TMPair = 9,
     TPSub = 50,
     TPAdd = 51,
     TPNeg = 52,
     TPRead = 53,
+    TPMkPair = 54,
+    TPFst = 55,
+    TPSnd = 56,
     TEMt  = 100,
     TEClo = 101,
     TKRet = 200,
@@ -48,6 +54,20 @@ void display_e (size_t tag, E* e);
 
 struct MNul {
     M m;
+};
+
+struct MTru {
+    M m;
+};
+
+struct MFals {
+    M m;
+};
+
+struct MPair {
+    M m;
+    M* l;
+    M* r;
 };
 
 struct MNum {
@@ -136,6 +156,7 @@ void display_heap ();
 
 bool is_v (size_t tag);
 
+M* new_m (M** m);
 M mk_m (size_t tag);
 E mk_e (size_t tag);
 K mk_k (size_t tag);

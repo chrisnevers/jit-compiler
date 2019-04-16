@@ -1,9 +1,7 @@
 %{
   open Ast
 
-  let _true () = Abs ("x", Abs ("y", Var "x"))
-  let _false () = Abs ("x", Abs ("y", Var "y"))
-  let _pair l r = Abs ("s", App (App (Var "s", l), r))
+  let _pair l r = Op ("mkpair", [l; r])
   let rec mk_pair l r =
     match r with
     | x :: [] -> _pair l x
@@ -43,9 +41,9 @@ main:
 exp:
   | ID                              { Var ($1) }
   | NUM                             { Num ($1) }
-  | FST exp                         { App ($2, _true ())}
-  | SND exp                         { App ($2, _false ())}
-  | b=BOOL                          { if b then _true () else _false () }
+  | FST exp                         { Op ("fst", [$2]) }
+  | SND exp                         { Op ("snd", [$2]) }
+  | b=BOOL                          { Bool (if b then true else false) }
   | LPAREN exp COMMA exp RPAREN     { _pair $2 $4 }
   | LPAREN exp COMMA es=separated_list(COMMA, exp) RPAREN
                                     { mk_pair $2 es }

@@ -70,6 +70,14 @@ let rec gen exp =
     let s1 = p "00000001" in
     let s2 = p (to_binary n) in
     line_no, s1 ^ s2
+  | Bool true ->
+    let line_no = !pc in
+    let s1 = p "00000111" in
+    line_no, s1
+  | Bool false ->
+    let line_no = !pc in
+    let s1 = p "00001000" in
+    line_no, s1
   | Var "read" -> gen_op0 "00110101"
   | Var v ->
     let line_no = !pc in
@@ -98,6 +106,9 @@ let rec gen exp =
       | _ -> gen_error "- should be unary or binary op"
       end
     | "+" -> gen_op2 "00110011" es
+    | "mkpair" -> gen_op2 "00110110" es
+    | "fst" -> gen_op1 "00110111" es
+    | "snd" -> gen_op1 "00111000" es
     | _ -> gen_error "unknown primitive operation"
 
 

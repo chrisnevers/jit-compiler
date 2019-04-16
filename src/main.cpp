@@ -84,6 +84,9 @@ void cek () {
                 }
                 break;
             }
+            case TMTru:
+            case TMFals:
+            case TMPair:
             case TMNul:
             case TMClo:
             case TMNum: {
@@ -129,21 +132,33 @@ void cek () {
                         break;
                     }
                     case TKOp1: {
-                        MNum* val = (MNum*) malloc1 (sizeof(MNum));
                         KOp1* op = (KOp1*) pk;
-                        val->m = mk_m (TMNum);
                         switch (op->op) {
                             case TPNeg: {
+                                MNum* val = (MNum*) malloc1 (sizeof(MNum));
+                                val->m = mk_m (TMNum);
                                 MNum* r = (MNum*) pc;
                                 val->val = - r->val;
+                                pc = (M*) val;
+                                break;
+                            }
+                            case TPFst: {
+                                MPair* pair = (MPair*) pc;
+                                M* val = new_m(&pair->l);
+                                pc = (M*) val;
+                                break;
+                            }
+                            case TPSnd: {
+                                MPair* pair = (MPair*) pc;
+                                M* val = new_m(&pair->r);
+                                pc = (M*) val;
                                 break;
                             }
                             default: {
                                 throw logic_error ("Unknown operator");
                             }
                         };
-                        pc = (M*) val;
-                        pe = e_mt ();
+                        // pe = e_mt ();
                         pk = op->ok;
                         break;
                     }
@@ -161,27 +176,38 @@ void cek () {
                             pk = (K*) nk;
                         } else {
                             // Values have been computed
-                            MNum* val = (MNum*) malloc1 (sizeof(MNum));
-                            val->m      = mk_m (TMNum);
                             switch ((*op)->op) {
                                 case TPAdd: {
+                                    MNum* val = (MNum*) malloc1 (sizeof(MNum));
+                                    val->m      = mk_m (TMNum);
                                     MNum* l = (MNum*) (*op)->v;
                                     MNum* r = (MNum*) pc;
                                     val->val = l->val + r->val;
+                                    pc = (M*) val;
                                     break;
                                 }
                                 case TPSub: {
+                                    MNum* val = (MNum*) malloc1 (sizeof(MNum));
+                                    val->m      = mk_m (TMNum);
                                     MNum* l = (MNum*) (*op)->v;
                                     MNum* r = (MNum*) pc;
                                     val->val = l->val - r->val;
+                                    pc = (M*) val;
+                                    break;
+                                }
+                                case TPMkPair: {
+                                    MPair* val = (MPair*) malloc1 (sizeof(MPair));
+                                    val->m = mk_m (TMPair);
+                                    val->l = new_m(&(*op)->v);
+                                    val->r = new_m(&pc);
+                                    pc = (M*) val;
                                     break;
                                 }
                                 default: {
                                     throw logic_error ("Unknown operator");
                                 }
                             };
-                            pc = (M*) val;
-                            pe = e_mt ();
+                            // pe = e_mt ();
                             pk = (*op)->ok;
                         }
                         break;
@@ -264,6 +290,16 @@ M* load_obj (int pos) {
     int op = get_int (tmp, pos, 0);
     switch (op) {
         case TMNul: return m_nul ();
+        case TMTru: {
+            MTru* n = (MTru*) malloc1 (sizeof(MTru));
+            n->m = mk_m (TMTru);
+            return (M*) n;
+        }
+        case TMFals: {
+            MFals* n = (MFals*) malloc1 (sizeof(MFals));
+            n->m = mk_m (TMFals);
+            return (M*) n;
+        }
         case TMNum: {
             MNum* n = (MNum*) malloc1 (sizeof(MNum));
             n->m    = mk_m (TMNum);
@@ -295,6 +331,7 @@ M* load_obj (int pos) {
             n->m    = mk_m (TMPrm);
             n->op   = get_int (tmp, pos, 1);
             switch (n->op) {
+                case TPMkPair:
                 case TPSub:
                 case TPAdd: {
                     n->arity = 2;
@@ -303,6 +340,8 @@ M* load_obj (int pos) {
                     n->ms[1] = load_obj (get_int (tmp, pos, 3));
                     break;
                 }
+                case TPFst:
+                case TPSnd:
                 case TPNeg: {
                     n->arity = 1;
                     n->ms    = (M**) malloc1 (sizeof(M*));

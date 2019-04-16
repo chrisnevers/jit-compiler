@@ -3,6 +3,7 @@ type m =
   | Abs of string * m
   | App of m * m
   | Num of int
+  | Bool of bool
   | Op of string * m list
 
 and e =
@@ -15,6 +16,7 @@ let rec str_m m =
   | Abs (id, e) -> "λ" ^ id ^ "." ^ str_m e
   | App (fn, e) -> str_m fn ^ " " ^ str_m e
   | Num i -> string_of_int i
+  | Bool b -> string_of_bool b
   | Op (o, es) -> o ^ " " ^ String.concat " " (List.map str_m es)
 
 and str_e e =

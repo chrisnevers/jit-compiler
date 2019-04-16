@@ -14,6 +14,17 @@ void display_m (size_t tag, M* m, bool nl) {
             cout << n->val;
             break;
         }
+        case TMTru: { cout << "true"; break; }
+        case TMFals: { cout << "false"; break; }
+        case TMPair: {
+            MPair* v = (MPair*) m;
+            cout << "(";
+            display_m (v->l->tag, v->l, false);
+            cout << ", ";
+            display_m (v->r->tag, v->r, false);
+            cout << ")";
+            break;
+        }
         case TMVar: {
             MVar* v = (MVar*) m;
             cout << "v" << v->id;
@@ -48,9 +59,12 @@ void display_m (size_t tag, M* m, bool nl) {
         case TMPrm: {
             MPrm* pr = (MPrm*) m;
             switch (pr->op) {
+                case TPFst: cout << "fst"; break;
+                case TPSnd: cout << "snd"; break;
                 case TPAdd: cout << "+"; break;
                 case TPNeg:
                 case TPSub: cout << "-"; break;
+                case TPMkPair: cout << "mkpair"; break;
                 case TPRead: cout << "read"; break;
                 default: break;
             };
@@ -135,6 +149,8 @@ void display_k (size_t tag, K* k) {
             KOp1* op = (KOp1*) k;
             cout << "op1 (";
             switch (op->op) {
+                case TPFst: cout << "fst"; break;
+                case TPSnd: cout << "snd"; break;
                 case TPNeg: cout << "-"; break;
                 default: break;
             };
@@ -149,6 +165,7 @@ void display_k (size_t tag, K* k) {
             KOp2* op = (KOp2*) k;
             cout << "op2 (";
             switch (op->op) {
+                case TPMkPair: cout << "mkpair"; break;
                 case TPAdd: cout << "+"; break;
                 case TPSub: cout << "-"; break;
                 default: break;

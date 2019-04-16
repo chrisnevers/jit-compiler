@@ -62,10 +62,9 @@ void copy_m (M** m_ptr) {
     // Depending on what the node is, copy of it's contents
     // Then, update the position of queue_tail to the next free space
     switch (tag) {
-        case TMNul: {
-            queue_tail += sizeof(MNul);
-            break;
-        }
+        case TMNul: { queue_tail += sizeof(MNul); break; }
+        case TMTru: { queue_tail += sizeof(MTru); break; }
+        case TMFals: { queue_tail += sizeof(MFals); break; }
         case TMNum: {
             MNum* num = (MNum*) m;
             int* i_ptr = (int*) (to_ptr + 1);
@@ -78,6 +77,13 @@ void copy_m (M** m_ptr) {
             int* i_ptr = (int*) (to_ptr + 1);
             i_ptr[0] = var->id;
             queue_tail += sizeof(MVar);
+            break;
+        }
+        case TMPair: {
+            MPair* pair = (MPair*) m;
+            to_ptr[1] = (size_t)pair->l;
+            to_ptr[2] = (size_t)pair->r;
+            queue_tail += sizeof(MPair);
             break;
         }
         case TMApp: {
@@ -187,7 +193,6 @@ void copy_k (K** k_ptr) {
 
     switch (tag) {
         case TKRet: {
-            cout << "Copy KRet" << endl;
             queue_tail += sizeof(KRet);
             break;
         }
@@ -238,7 +243,6 @@ void copy_k (K** k_ptr) {
     k->tag = (size_t)to_ptr;
     // Update the original pointer to point to the newly copied object.
     *k_ptr = (K*) to_ptr;
-    cout << (size_t)pk << endl;
 }
 
 void swap_spaces () {
@@ -280,9 +284,18 @@ void process (size_t** q_ptr) {
         case TKRet: { queue_head += sizeof(KRet); break; }
         case TEMt : { queue_head += sizeof(EMt); break; }
         case TMNul: { queue_head += sizeof(MNul); break; }
+        case TMTru: { queue_head += sizeof(MTru); break; }
+        case TMFals: { queue_head += sizeof(MFals); break; }
         // Skip processing these nodes because they do not contain pointers
         case TMNum: { queue_head += sizeof(MNum); break; }
         case TMVar: { queue_head += sizeof(MVar); break; }
+        case TMPair: {
+            MPair* pair = (MPair*) *q_ptr;
+            process_m (&pair->l);
+            process_m (&pair->r);
+            queue_head += sizeof(MPair);
+            break;
+        }
         case TMApp: {
             MApp* app = (MApp*) *q_ptr;
             process_m (&app->fn);
