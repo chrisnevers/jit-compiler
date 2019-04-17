@@ -203,6 +203,46 @@ void cek () {
                                     pc = (M*) val;
                                     break;
                                 }
+                                case TPLt: {
+                                    M* res = (M*) malloc1 (sizeof(M));
+                                    MNum* l = (MNum*) (*op)->v;
+                                    MNum* r = (MNum*) pc;
+                                    res->tag = (l->val < r->val) ? TMTru : TMFals;
+                                    pc = (M*) res;
+                                    break;
+                                }
+                                case TPLtE: {
+                                    M* res = (M*) malloc1 (sizeof(M));
+                                    MNum* l = (MNum*) (*op)->v;
+                                    MNum* r = (MNum*) pc;
+                                    res->tag = (l->val <= r->val) ? TMTru : TMFals;
+                                    pc = (M*) res;
+                                    break;
+                                }
+                                case TPGt: {
+                                    M* res = (M*) malloc1 (sizeof(M));
+                                    MNum* l = (MNum*) (*op)->v;
+                                    MNum* r = (MNum*) pc;
+                                    res->tag = (l->val > r->val) ? TMTru : TMFals;
+                                    pc = (M*) res;
+                                    break;
+                                }
+                                case TPGtE: {
+                                    M* res = (M*) malloc1 (sizeof(M));
+                                    MNum* l = (MNum*) (*op)->v;
+                                    MNum* r = (MNum*) pc;
+                                    res->tag = (l->val >= r->val) ? TMTru : TMFals;
+                                    pc = (M*) res;
+                                    break;
+                                }
+                                case TPEq: {
+                                    M* res = (M*) malloc1 (sizeof(M));
+                                    MNum* l = (MNum*) (*op)->v;
+                                    MNum* r = (MNum*) pc;
+                                    res->tag = (l->val == r->val) ? TMTru : TMFals;
+                                    pc = (M*) res;
+                                    break;
+                                }
                                 default: {
                                     throw logic_error ("Unknown operator");
                                 }
@@ -331,6 +371,11 @@ M* load_obj (int pos) {
             n->m    = mk_m (TMPrm);
             n->op   = get_int (tmp, pos, 1);
             switch (n->op) {
+                case TPLt:
+                case TPLtE:
+                case TPGt:
+                case TPGtE:
+                case TPEq:
                 case TPMkPair:
                 case TPSub:
                 case TPAdd: {

@@ -59,6 +59,11 @@ void display_m (size_t tag, M* m, bool nl) {
         case TMPrm: {
             MPrm* pr = (MPrm*) m;
             switch (pr->op) {
+                case TPLt: cout << "<"; break;
+                case TPLtE: cout << "<="; break;
+                case TPGt: cout << ">"; break;
+                case TPGtE: cout << ">="; break;
+                case TPEq: cout << "="; break;
                 case TPFst: cout << "fst"; break;
                 case TPSnd: cout << "snd"; break;
                 case TPAdd: cout << "+"; break;
@@ -165,6 +170,11 @@ void display_k (size_t tag, K* k) {
             KOp2* op = (KOp2*) k;
             cout << "op2 (";
             switch (op->op) {
+                case TPLt: cout << "<"; break;
+                case TPLtE: cout << "<="; break;
+                case TPGt: cout << ">"; break;
+                case TPGtE: cout << ">="; break;
+                case TPEq: cout << "="; break;
                 case TPMkPair: cout << "mkpair"; break;
                 case TPAdd: cout << "+"; break;
                 case TPSub: cout << "-"; break;

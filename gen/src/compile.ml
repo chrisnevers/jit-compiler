@@ -109,6 +109,11 @@ let rec gen exp =
     | "mkpair" -> gen_op2 "00110110" es
     | "fst" -> gen_op1 "00110111" es
     | "snd" -> gen_op1 "00111000" es
+    | ">" -> gen_op2 "00111001" es
+    | ">=" -> gen_op2 "00111010" es
+    | "<" -> gen_op2 "00111011" es
+    | "<=" -> gen_op2 "00111100" es
+    | "=" -> gen_op2 "00111101" es
     | _ -> gen_error "unknown primitive operation"
 
 

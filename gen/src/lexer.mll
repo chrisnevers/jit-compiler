@@ -20,6 +20,10 @@ rule token = parse
   | ","             { COMMA }
   | "fst"           { FST }
   | "snd"           { SND }
+  | ">="            { GEQ }
+  | ">"             { GT }
+  | "<="            { LEQ }
+  | "<"             { LT }
   | ['0'-'9']+ as n { NUM (int_of_string n)}
   | (['a'-'z''A'-'Z']|['0'-'9'])+ as id
                     { ID id }

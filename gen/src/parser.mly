@@ -16,6 +16,7 @@
 %token APP
 %token ADD
 %token SUB
+%token GT GEQ LT LEQ
 %token COMMA
 %token FST SND
 %token IF ELSE
@@ -26,7 +27,9 @@
 
 %nonassoc LPAREN ID NUM
 %left APP
-%left ADD
+/* %left AND OR */
+%left GE GEQ LE LEQ
+%left ADD SUB
 %nonassoc USUB
 
 %start main
@@ -49,6 +52,11 @@ exp:
                                     { mk_pair $2 es }
   | exp ADD exp                     { Op ("+", [$1; $3]) }
   | exp SUB exp                     { Op ("-", [$1; $3]) }
+  | exp LT exp                      { Op ("<", [$1; $3]) }
+  | exp LEQ exp                     { Op ("<=", [$1; $3]) }
+  | exp GT exp                      { Op (">", [$1; $3]) }
+  | exp GEQ exp                     { Op (">=", [$1; $3]) }
+  | exp EQ exp                      { Op ("=", [$1; $3]) }
   | FUN ID ARROW exp                { Abs ($2, $4) }
   | LPAREN exp RPAREN               { $2 }
   | exp exp %prec APP               { App ($1, $2) }
