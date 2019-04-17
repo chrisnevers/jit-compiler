@@ -5,6 +5,7 @@ type m =
   | Num of int
   | Bool of bool
   | Op of string * m list
+  | If of m * m * m
 
 and e =
   | EMt
@@ -18,6 +19,7 @@ let rec str_m m =
   | Num i -> string_of_int i
   | Bool b -> string_of_bool b
   | Op (o, es) -> o ^ " " ^ String.concat " " (List.map str_m es)
+  | If (c, t, e) -> "if " ^ str_m c ^ " " ^ str_m t ^ " else " ^ str_m e
 
 and str_e e =
   match e with

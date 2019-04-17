@@ -10,6 +10,7 @@ rule token = parse
   | "in"            { IN }
   | "if"            { IF }
   | "else"          { ELSE }
+  | "then"          { THEN }
   | "true"          { BOOL true }
   | "false"         { BOOL false }
   | "->"|"→"|"."    { ARROW }

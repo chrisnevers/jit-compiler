@@ -19,7 +19,7 @@
 %token GT GEQ LT LEQ
 %token COMMA
 %token FST SND
-%token IF ELSE
+%token IF ELSE THEN
 %token LET EQ IN
 %token <int> NUM
 %token <bool> BOOL
@@ -62,6 +62,4 @@ exp:
   | exp exp %prec APP               { App ($1, $2) }
   | SUB exp %prec USUB              { Op ("-", [$2]) }
   | LET ID EQ exp IN exp            { App (Abs ($2, $6), $4) }
-  | IF exp exp ELSE exp
-    { App (App (App (Abs ("v", Abs ("t", Abs ("f",
-      App (App (Var "v", Var "t"), Var "f")))), $2), $3), $5) }
+  | IF exp THEN exp ELSE exp        { If ($2, $4, $6) }

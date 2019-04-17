@@ -99,6 +99,16 @@ let rec gen exp =
     let s2 = p (to_binary @@ var_to_id m) in
     let s3 = p (to_binary nl) in
     line_no, res ^ s1 ^ s2 ^ s3
+  | If (c, t, e) ->
+    let cl, res1 = gen c in
+    let tl, res2 = gen t in
+    let el, res3 = gen e in
+    let line_no = !pc in
+    let s1 = p "00001010" in
+    let s2 = p (to_binary cl) in
+    let s3 = p (to_binary tl) in
+    let s4 = p (to_binary el) in
+    line_no, res1 ^ res2 ^ res3 ^ s1 ^ s2 ^ s3 ^ s4
   | Op (o, es) -> match o with
     | "-" -> begin match List.length es with
       | 1 -> gen_op1 "00110100" es

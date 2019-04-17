@@ -14,18 +14,19 @@ enum {
     TMTru = 7,
     TMFals = 8,
     TMPair = 9,
-    TPSub = 50,
-    TPAdd = 51,
-    TPNeg = 52,
+    TMIf   = 10,
+    TPSub  = 50,
+    TPAdd  = 51,
+    TPNeg  = 52,
     TPRead = 53,
     TPMkPair = 54,
     TPFst = 55,
     TPSnd = 56,
-    TPGt = 57,
+    TPGt  = 57,
     TPGtE = 58,
-    TPLt = 59,
+    TPLt  = 59,
     TPLtE = 60,
-    TPEq = 61,
+    TPEq  = 61,
     TEMt  = 100,
     TEClo = 101,
     TKRet = 200,
@@ -34,6 +35,7 @@ enum {
     TKOp0 = 203,
     TKOp1 = 204,
     TKOp2 = 205,
+    TKIf  = 206,
 };
 
 struct E {
@@ -110,6 +112,13 @@ struct MPrm {
     char op;
 };
 
+struct MIf {
+    M m;
+    M* cnd;
+    M* thn;
+    M* els;
+};
+
 void display_m (size_t tag, M* m, bool nl=true);
 
 struct K {
@@ -152,6 +161,13 @@ struct KOp2 {
     M* m;
     K* ok;
     char op;
+};
+
+struct KIf {
+    K k;
+    M* t;
+    M* e;
+    K* ok;
 };
 
 void display_k (size_t tag, K* k);

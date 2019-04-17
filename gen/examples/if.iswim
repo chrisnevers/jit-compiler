@@ -1,0 +1,7 @@
+let res =
+    if 3 < 3 then
+        let x = true in x
+    else
+        let y = false in y
+in
+res

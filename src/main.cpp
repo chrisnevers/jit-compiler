@@ -65,6 +65,17 @@ void cek () {
                 pk = (K*) node;
                 break;
             }
+            case TMIf: {
+                KIf* node = (KIf*) malloc1 (sizeof(KIf));
+                MIf* i = (MIf*) pc;
+                node->k = mk_k (TKIf);
+                node->ok = pk;
+                node->t = i->thn;
+                node->e = i->els;
+                pc = i->cnd;
+                pk = (K*) node;
+                break;
+            }
             case TMVar: {
                 MVar* var = (MVar*) pc;
                 E* e = pe;
@@ -108,6 +119,15 @@ void cek () {
                         pk = (K*) node;
                         pc = fn->m;
                         pe = fn->e;
+                        break;
+                    }
+                    case TKIf: {
+                        KIf* node = (KIf*) pk;
+                        switch (pc->tag) {
+                            case TMTru:  { pc = node->t; break; }
+                            case TMFals: { pc = node->e; break; }
+                        }
+                        pk = node->ok;
                         break;
                     }
                     case TKArg: {
@@ -357,6 +377,14 @@ M* load_obj (int pos) {
             n->m    = mk_m (TMApp);
             n->fn   = load_obj (get_int (tmp, pos, 1));
             n->arg  = load_obj (get_int (tmp, pos, 2));
+            return (M*) n;
+        }
+        case TMIf: {
+            MIf* n = (MIf*) malloc1 (sizeof(MIf));
+            n->m    = mk_m (TMIf);
+            n->cnd  = load_obj (get_int (tmp, pos, 1));
+            n->thn  = load_obj (get_int (tmp, pos, 2));
+            n->els  = load_obj (get_int (tmp, pos, 3));
             return (M*) n;
         }
         case TMLam: {

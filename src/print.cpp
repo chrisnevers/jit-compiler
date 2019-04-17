@@ -56,6 +56,16 @@ void display_m (size_t tag, M* m, bool nl) {
             // cout << "Arg Address: " << app->arg << endl;
             break;
         }
+        case TMIf: {
+            MIf* i = (MIf*) m;
+            cout << "if ";
+            display_m (i->cnd->tag, i->cnd, false);
+            cout << " then ";
+            display_m (i->thn->tag, i->thn, false);
+            cout << " else ";
+            display_m (i->els->tag, i->els, false);
+            break;
+        }
         case TMPrm: {
             MPrm* pr = (MPrm*) m;
             switch (pr->op) {
@@ -128,6 +138,17 @@ void display_k (size_t tag, K* k) {
             display_e (fn->e->tag, fn->e);
             cout << ", ";
             display_k (fn->ok->tag, fn->ok);
+            cout << ")";
+            break;
+        }
+        case TKIf: {
+            KIf* i = (KIf*) k;
+            cout << "if (";
+            display_m (i->t->tag, i->t, false);
+            cout << ", ";
+            display_m (i->e->tag, i->e, false);
+            cout << ", ";
+            display_k (i->ok->tag, i->ok);
             cout << ")";
             break;
         }
