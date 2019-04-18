@@ -1,23 +1,30 @@
 open Lexer
 open Parser
 open Printf
+open Binary_helper
 open Ast
 
 exception GenError of string
 let gen_error msg = raise (GenError msg)
 
-let write_to_file fn s =
-  let channel = open_out fn in
-  output_string channel s;
-  close_out channel
+let rec output ch instrs =
+  match instrs with
+  | h :: t -> output_byte ch h; output ch t
+  | [] -> close_out ch
 
+let write_to_file fn s =
+  let channel = open_out_bin fn in
+  output channel s
+
+(*
+  Env - (exp, int)
+  Int is number of object
+ *)
 let env : (string, int) Hashtbl.t = Hashtbl.create 10
 
-module StringSet = Set.Make (String)
-
 let pc = ref 0
-
 let var_ctr = ref 0
+let instrs = ref []
 
 let var_to_id var =
   let open Hashtbl in
@@ -27,113 +34,114 @@ let var_to_id var =
     add env var !var_ctr;
     !var_ctr
 
-let p bytes s =
-  let str = s in
-  pc := !pc + bytes;
-  str
+(* Set leftmost bit of bytecode to 1 to indicate its a pointer *)
+let _address i = (i * 2) + 1
 
-let to_binary len n =
-  if n = 0 then "0" else
-  let rec aux acc n =
-    if n = 0 then acc
-    else aux (string_of_int (n land 1) :: acc) (n lsr 1)
-  in
-  match len with
-  | 8 -> sprintf "%08d" (int_of_string (String.concat "" (aux [] n)))
-  | 32 -> sprintf "%032d" (int_of_string (String.concat "" (aux [] n)))
-  | 64 -> sprintf "%064d" (int_of_string (String.concat "" (aux [] n)))
+let p s =
+  instrs := s :: !instrs;
+  incr pc
+
+let rev str =
+   let rec aux idx = match idx with
+     0 -> Char.escaped (str.[0])
+   | _ -> (Char.escaped str.[idx]) ^ (aux (idx-1)) in
+  aux ((String.length str)-1)
+
+(**
+  Tags - 8 byte in length
+*)
+let byte_tag tag =
+  p (match tag with
+  | `Nul -> 0
+  | `Num -> 1
+  | `Var -> 2
+  | `App -> 3
+  | `Abs -> 4
+  | `Op  -> 5
+  );
+  for i = 1 to 7 do p 0 done
+
+(**
+  Ints - 4 bytes in length. Represented in Little Endian
+*)
+let byte_int n =
+  let bits = pad 32 (to_bits n) in
+  let bytes = List.rev @@ to_bytes bits 4 in
+  List.iter (fun b -> p b) bytes
+
+(**
+  Pointers - 8 bytes in length. Represented in Little Endian
+*)
+let byte_ptr n =
+  let n = 2 * n + 1 in
+  let bits = pad 64 (to_bits n) in
+  let bytes = List.rev @@ to_bytes bits 8 in
+  List.iter (fun b -> p b) bytes
 
 let gen_op0 op =
   let line_no = !pc in
-  let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000110" in
-  let s2 = p 1 op in
-  line_no, s1 ^ s2
+  let s1 = byte_tag `Op in
+  byte_int op;
+  line_no
 
 let rec gen exp =
   match exp with
   | Num n ->
     let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000001" in
-    let s2 = p 4 (to_binary 32 n) in
-    line_no, s1 ^ s2
-  | Bool true ->
-    let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000111" in
-    line_no, s1
-  | Bool false ->
-    let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000001000" in
-    line_no, s1
-  | Var "read" -> gen_op0 "00110101"
+    print_endline ("Num: " ^ string_of_int line_no);
+    let s1 = byte_tag `Num in
+    let s2 = byte_int n in
+    line_no
+  | Var "read" -> gen_op0 53
   | Var v ->
     let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000010" in
-    let s2 = p 4 (to_binary 32 @@ var_to_id v) in
-    line_no, s1 ^ s2
+    let s1 = byte_tag `Var in
+    let s2 = byte_int @@ var_to_id v in
+    line_no
   | App (m, n) ->
-    let ml, res1 = gen m in
-    let nl, res2 = gen n in
+    let ml = gen m in
+    let nl = gen n in
     let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000011" in
-    let s2 = p 8 (to_binary 64 ml) in
-    let s3 = p 8 (to_binary 64 nl) in
-    line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3
+    let s1 = byte_tag `App in
+    let s2 = byte_ptr ml in
+    let s3 = byte_ptr nl in
+    line_no
   | Abs (m, n) ->
-    let nl, res = gen n in
+    let nl = gen n in
     let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000100" in
-    let s2 = p 8 (to_binary 64 nl) in
-    let s3 = p 4 (to_binary 32 @@ var_to_id m) in
-    line_no, res ^ s1 ^ s2 ^ s3
-  | If (c, t, e) ->
-    let cl, res1 = gen c in
-    let tl, res2 = gen t in
-    let el, res3 = gen e in
-    let line_no = !pc in
-    let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000001010" in
-    let s2 = p 8 (to_binary 64 cl) in
-    let s3 = p 8 (to_binary 64 tl) in
-    let s4 = p 8 (to_binary 64 el) in
-    line_no, res1 ^ res2 ^ res3 ^ s1 ^ s2 ^ s3 ^ s4
+    let s1 = byte_tag `Abs in
+    let s2 = byte_int @@ var_to_id m in
+    let s3 = byte_ptr nl in
+    line_no
   | Op (o, es) -> match o with
     | "-" -> begin match List.length es with
-      | 1 -> gen_op1 "00110100" es
-      | 2 -> gen_op2 "00110010" es
+      | 1 -> gen_op1 52 es
+      | 2 -> gen_op2 50 es
       | _ -> gen_error "- should be unary or binary op"
       end
-    | "+" -> gen_op2 "00110011" es
-    | "mkpair" -> gen_op2 "00110110" es
-    | "fst" -> gen_op1 "00110111" es
-    | "snd" -> gen_op1 "00111000" es
-    | ">" -> gen_op2 "00111001" es
-    | ">=" -> gen_op2 "00111010" es
-    | "<" -> gen_op2 "00111011" es
-    | "<=" -> gen_op2 "00111100" es
-    | "=" -> gen_op2 "00111101" es
+    | "+" -> gen_op2 51 es
     | _ -> gen_error "unknown primitive operation"
 
 
 and gen_op1 op es =
   let [l] = es in
-  let ll, res1 = gen l in
+  let ll = gen l in
   let line_no = !pc in
-  let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000110" in
-  let s2 = p 8 (to_binary 64 ll) in
-  let s3 = p 4 (to_binary 32 1) in
-  let s4 = p 1 op in
-  line_no, res1 ^ s1 ^ s2 ^ s3 ^ s4
+  let s1 = byte_tag `Op in
+  let s2 = byte_int op in
+  let s3 = byte_ptr ll in
+  line_no
 
 and gen_op2 op es =
   let [l; r] = es in
-  let ll, res1 = gen l in
-  let rl, res2 = gen r in
+  let ll = gen l in
+  let rl = gen r in
   let line_no = !pc in
-  let s1 = p 8 "0000000000000000000000000000000000000000000000000000000000000110" in
-  let s2 = p 8 (to_binary 64 ll) in
-  let s3 = p 8 (to_binary 64 rl) in
-  let s4 = p 4  (to_binary 32 2) in
-  let s5 = p 1 op in
-  line_no, res1 ^ res2 ^ s1 ^ s2 ^ s3 ^ s4 ^ s5
+  let s1 = byte_tag `Op in
+  let s2 = byte_int op in
+  let s3 = byte_ptr ll in
+  let s4 = byte_ptr rl in
+  line_no
 
 let load_file f =
   let ic = open_in f in
@@ -144,18 +152,16 @@ let load_file f =
   Bytes.to_string s
 
 let compile filename =
-  let null    = p 8 "0000000000000000000000000000000000000000000000000000000000000000" in
+  let null    = byte_tag `Nul  in
   let str     = load_file filename in
   let buffer  = Lexing.from_string str in
   try
     let ast = main token buffer in
-    let res = gen ast in
-    let l, res = res in
-    let out =
-      (* to_binary 32 !pc ^ *)
-      to_binary 32 (l) ^
-      null ^ res in
-    write_to_file "tmp.byte" out
+    let l   = gen ast in
+    let old = List.rev !instrs in
+    instrs := [];
+    byte_int l;
+    write_to_file "tmp.byte" (List.rev !instrs @ old)
   with
   | Parser.Error ->
     let position = Lexing.lexeme_start_p buffer in
@@ -166,4 +172,3 @@ let _ =
   if Array.length Sys.argv < 2 then
     print_endline "Usage: ./compile {filename}"
   else compile Sys.argv.(1)
-
