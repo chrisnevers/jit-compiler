@@ -1,6 +1,17 @@
 #include "ast.h"
 #include "gc.h"
 
+extern char* mm;
+
+M* deref (M* pc) {
+    size_t loc = (size_t) pc;
+    if (loc % 2 == 1) {
+        size_t new_loc = loc >> 1;
+        return (M*) (size_t*) (mm + 4 + new_loc);
+    }
+    return pc;
+}
+
 bool is_v (size_t tag) {
     switch (tag) {
         case TMTru:

@@ -19,9 +19,11 @@ void display_m (size_t tag, M* m, bool nl) {
         case TMPair: {
             MPair* v = (MPair*) m;
             cout << "(";
-            display_m (v->l->tag, v->l, false);
+            M* l = deref(v->l);
+            display_m (l->tag, l, false);
             cout << ", ";
-            display_m (v->r->tag, v->r, false);
+            M* r = deref(v->r);
+            display_m (r->tag, r, false);
             cout << ")";
             break;
         }
@@ -33,13 +35,15 @@ void display_m (size_t tag, M* m, bool nl) {
         case TMLam: {
             MLam* lam = (MLam*) m;
             cout << "λv" << lam->id << ".";
-            display_m (lam->body->tag, lam->body, false);
+            M* body = deref(lam->body);
+            display_m (body->tag, body, false);
             break;
         }
         case TMClo: {
             MClo* clo = (MClo*) m;
             cout << "Clo (";
-            display_m (clo->ex->tag, clo->ex, false);
+            M* ex = deref(clo->ex);
+            display_m (ex->tag, ex, false);
             cout << ", ";
             display_e (clo->env->tag, clo->env);
             cout << ")";
@@ -48,9 +52,11 @@ void display_m (size_t tag, M* m, bool nl) {
         case TMApp: {
             MApp* app = (MApp*) m;
             cout << "(";
-            display_m (app->fn->tag, app->fn, false);
+            M* fn = deref(app->fn);
+            display_m (fn->tag, fn, false);
             cout << " ";
-            display_m (app->arg->tag, app->arg, false);
+            M* arg = deref(app->arg);
+            display_m (arg->tag, arg, false);
             cout << ")";
             // cout << "Fn Address: " << app->fn << endl;
             // cout << "Arg Address: " << app->arg << endl;
@@ -59,11 +65,14 @@ void display_m (size_t tag, M* m, bool nl) {
         case TMIf: {
             MIf* i = (MIf*) m;
             cout << "if ";
-            display_m (i->cnd->tag, i->cnd, false);
+            M* cnd = deref(i->cnd);
+            display_m (cnd->tag, cnd, false);
             cout << " then ";
-            display_m (i->thn->tag, i->thn, false);
+            M* thn = deref(i->thn);
+            display_m (thn->tag, thn, false);
             cout << " else ";
-            display_m (i->els->tag, i->els, false);
+            M* els = deref(i->els);
+            display_m (els->tag, els, false);
             break;
         }
         case TMPrm: {
@@ -84,8 +93,10 @@ void display_m (size_t tag, M* m, bool nl) {
                 default: break;
             };
             cout << "(";
+            M** ms = (M**) deref((M*)pr->ms);
             for (size_t i = 0; i < pr->arity; ++i) {
-                display_m (pr->ms[i]->tag, pr->ms[i], false);
+                M* mi = deref(ms[i]);
+                display_m (mi->tag, mi, false);
                 if (i + 1 != pr->arity) {
                     cout << ", ";
                 }

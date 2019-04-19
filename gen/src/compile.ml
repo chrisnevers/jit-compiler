@@ -41,12 +41,6 @@ let p s =
   instrs := s :: !instrs;
   incr pc
 
-let rev str =
-   let rec aux idx = match idx with
-     0 -> Char.escaped (str.[0])
-   | _ -> (Char.escaped str.[idx]) ^ (aux (idx-1)) in
-  aux ((String.length str)-1)
-
 (**
   Tags - 8 byte in length
 *)
@@ -57,7 +51,10 @@ let byte_tag tag =
   | `Var -> 2
   | `App -> 3
   | `Abs -> 4
-  | `Op  -> 5
+  | `Op  -> 6
+  | `True -> 7
+  | `False -> 8
+  | `If -> 10
   );
   for i = 1 to 7 do p 0 done
 
@@ -80,7 +77,9 @@ let byte_ptr n =
 
 let gen_op0 op =
   let line_no = !pc in
-  let s1 = byte_tag `Op in
+  byte_tag `Op;
+  byte_ptr 0;
+  byte_int 0;
   byte_int op;
   line_no
 
@@ -88,30 +87,47 @@ let rec gen exp =
   match exp with
   | Num n ->
     let line_no = !pc in
-    print_endline ("Num: " ^ string_of_int line_no);
-    let s1 = byte_tag `Num in
-    let s2 = byte_int n in
+    byte_tag `Num;
+    byte_int n;
+    line_no
+  | Bool true ->
+    let line_no = !pc in
+    byte_tag `True;
+    line_no
+  | Bool false ->
+    let line_no = !pc in
+    byte_tag `False;
     line_no
   | Var "read" -> gen_op0 53
   | Var v ->
     let line_no = !pc in
-    let s1 = byte_tag `Var in
-    let s2 = byte_int @@ var_to_id v in
+    byte_tag `Var;
+    byte_int @@ var_to_id v;
     line_no
   | App (m, n) ->
     let ml = gen m in
     let nl = gen n in
     let line_no = !pc in
-    let s1 = byte_tag `App in
-    let s2 = byte_ptr ml in
-    let s3 = byte_ptr nl in
+    byte_tag `App;
+    byte_ptr ml;
+    byte_ptr nl;
+    line_no
+  | If (c, t, e) ->
+    let cl = gen c in
+    let tl = gen t in
+    let el = gen e in
+    let line_no = !pc in
+    byte_tag `If;
+    byte_ptr cl;
+    byte_ptr tl;
+    byte_ptr el;
     line_no
   | Abs (m, n) ->
     let nl = gen n in
     let line_no = !pc in
-    let s1 = byte_tag `Abs in
-    let s2 = byte_int @@ var_to_id m in
-    let s3 = byte_ptr nl in
+    byte_tag `Abs;
+    byte_ptr nl;
+    byte_int @@ var_to_id m;
     line_no
   | Op (o, es) -> match o with
     | "-" -> begin match List.length es with
@@ -120,6 +136,14 @@ let rec gen exp =
       | _ -> gen_error "- should be unary or binary op"
       end
     | "+" -> gen_op2 51 es
+    | "mkpair" -> gen_op2 54 es
+    | "fst" -> gen_op1 55 es
+    | "snd" -> gen_op1 56 es
+    | ">" -> gen_op2 57 es
+    | ">=" -> gen_op2 58 es
+    | "<" -> gen_op2 59 es
+    | "<=" -> gen_op2 60 es
+    | "=" -> gen_op2 61 es
     | _ -> gen_error "unknown primitive operation"
 
 
@@ -127,9 +151,11 @@ and gen_op1 op es =
   let [l] = es in
   let ll = gen l in
   let line_no = !pc in
-  let s1 = byte_tag `Op in
-  let s2 = byte_int op in
-  let s3 = byte_ptr ll in
+  byte_tag `Op;
+  byte_ptr (line_no + 24);
+  byte_int 1;
+  byte_int op;
+  byte_ptr ll;
   line_no
 
 and gen_op2 op es =
@@ -137,10 +163,12 @@ and gen_op2 op es =
   let ll = gen l in
   let rl = gen r in
   let line_no = !pc in
-  let s1 = byte_tag `Op in
-  let s2 = byte_int op in
-  let s3 = byte_ptr ll in
-  let s4 = byte_ptr rl in
+  byte_tag `Op;
+  byte_ptr (line_no + 24);
+  byte_int 2;
+  byte_int op;
+  byte_ptr ll;
+  byte_ptr rl;
   line_no
 
 let load_file f =
@@ -152,7 +180,7 @@ let load_file f =
   Bytes.to_string s
 
 let compile filename =
-  let null    = byte_tag `Nul  in
+  byte_tag `Nul;
   let str     = load_file filename in
   let buffer  = Lexing.from_string str in
   try

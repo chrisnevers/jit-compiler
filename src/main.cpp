@@ -36,7 +36,6 @@ K* pk;
 void cek () {
     pe = e_mt();
     pk = k_ret();
-    // print_space(from_space_begin, from_space_end, "FROM");
 
     while (true) {
         M* m = pc;
@@ -56,34 +55,34 @@ void cek () {
             }
             case TMApp: {
                 KFn* node   = (KFn*) malloc1 (sizeof(KFn));
-                MApp* app = (MApp*) pc;
-                node->k = mk_k (TKFn);
-                node->m = app->arg;
-                node->e = pe;
-                node->ok = pk;
-                pc = app->fn;
+                MApp* app   = (MApp*) pc;
+                node->k     = mk_k (TKFn);
+                node->m     = deref(app->arg);
+                node->e     = pe;
+                node->ok    = pk;
+                pc = deref(app->fn);
                 pk = (K*) node;
                 break;
             }
             case TMIf: {
-                KIf* node = (KIf*) malloc1 (sizeof(KIf));
-                MIf* i = (MIf*) pc;
-                node->k = mk_k (TKIf);
-                node->ok = pk;
-                node->t = i->thn;
-                node->e = i->els;
-                pc = i->cnd;
+                KIf* node   = (KIf*) malloc1 (sizeof(KIf));
+                MIf* i      = (MIf*) pc;
+                node->k     = mk_k (TKIf);
+                node->ok    = pk;
+                node->t     = deref(i->thn);
+                node->e     = deref(i->els);
+                pc = deref(i->cnd);
                 pk = (K*) node;
                 break;
             }
             case TMVar: {
-                MVar* var = (MVar*) pc;
-                E* e = pe;
-                M* old_pc = pc;
+                MVar* var   = (MVar*) pc;
+                E* e        = pe;
+                M* old_pc   = pc;
                 while (e->tag != TEMt) {
                     EClo* clo = (EClo*) e;
                     if (var->id == clo->id) {
-                        pc = clo->val;
+                        pc = deref(clo->val);
                         break;
                     } else {
                         e = clo->nxt;
@@ -105,19 +104,19 @@ void cek () {
                 switch (k_tag) {
                     case TKRet: {
                         if (is_v (tag)) {
-                            display_m (tag, (M*) pc);
+                            display_m (tag, pc);
                             return;
                         }
                         break;
                     }
                     case TKFn: {
-                        KArg* node   = (KArg*) malloc1 (sizeof(KArg));
-                        KFn* fn = (KFn*) pk;
-                        node->k = mk_k (TKArg);
-                        node->m = pc;
-                        node->ok = fn->ok;
+                        KArg* node  = (KArg*) malloc1 (sizeof(KArg));
+                        KFn* fn     = (KFn*) pk;
+                        node->k     = mk_k (TKArg);
+                        node->m     = pc;
+                        node->ok    = fn->ok;
                         pk = (K*) node;
-                        pc = fn->m;
+                        pc = deref(fn->m);
                         pe = fn->e;
                         break;
                     }
@@ -135,15 +134,15 @@ void cek () {
                         if (ar->m->tag == TMClo) {
                             EClo* node  = (EClo*) malloc1 (sizeof(EClo));
                             ar = (KArg*) pk;
-                            MClo* clo = (MClo*) ar->m;
-                            MLam* lam = (MLam*) clo->ex;
+                            MClo* clo   = (MClo*) ar->m;
+                            MLam* lam   = (MLam*) clo->ex;
                             E* env = (clo->env->tag == TEMt)
                                 ? e_mt () : clo->env;
-                            node->e  = mk_e (TEClo);
-                            node->id = lam->id;
-                            node->val = pc;
-                            node->nxt = env;
-                            pc = lam->body;
+                            node->e     = mk_e (TEClo);
+                            node->id    = lam->id;
+                            node->val   = pc;
+                            node->nxt   = env;
+                            pc = deref(lam->body);
                             pe = (E*) node;
                             pk = ar->ok;
                         } else {
@@ -155,22 +154,22 @@ void cek () {
                         KOp1* op = (KOp1*) pk;
                         switch (op->op) {
                             case TPNeg: {
-                                MNum* val = (MNum*) malloc1 (sizeof(MNum));
-                                val->m = mk_m (TMNum);
-                                MNum* r = (MNum*) pc;
-                                val->val = - r->val;
+                                MNum* val   = (MNum*) malloc1 (sizeof(MNum));
+                                val->m      = mk_m (TMNum);
+                                MNum* r     = (MNum*) deref(pc);
+                                val->val    = - r->val;
                                 pc = (M*) val;
                                 break;
                             }
                             case TPFst: {
                                 MPair* pair = (MPair*) pc;
-                                M* val = new_m(&pair->l);
+                                M* val      = new_m(&pair->l);
                                 pc = (M*) val;
                                 break;
                             }
                             case TPSnd: {
                                 MPair* pair = (MPair*) pc;
-                                M* val = new_m(&pair->r);
+                                M* val      = new_m(&pair->r);
                                 pc = (M*) val;
                                 break;
                             }
@@ -185,21 +184,22 @@ void cek () {
                     case TKOp2: {
                         KOp2** op = (KOp2**) &pk;
                         // Solve second value now
-                        if ((*op)->m->tag != TMNul) {
+                        M* m = deref ((*op)->m);
+                        if (m->tag != TMNul) {
                             KOp2* nk = (KOp2*) malloc1 (sizeof(KOp2));
                             nk->k   = (*op)->k;
                             nk->op  = (*op)->op;
                             nk->v   = pc;
                             nk->m   = m_nul ();
                             nk->ok  = (*op)->ok;
-                            pc = (*op)->m;
+                            pc = deref((*op)->m);
                             pk = (K*) nk;
                         } else {
                             // Values have been computed
                             switch ((*op)->op) {
                                 case TPAdd: {
                                     MNum* val = (MNum*) malloc1 (sizeof(MNum));
-                                    val->m      = mk_m (TMNum);
+                                    val->m  = mk_m (TMNum);
                                     MNum* l = (MNum*) (*op)->v;
                                     MNum* r = (MNum*) pc;
                                     val->val = l->val + r->val;
@@ -208,7 +208,7 @@ void cek () {
                                 }
                                 case TPSub: {
                                     MNum* val = (MNum*) malloc1 (sizeof(MNum));
-                                    val->m      = mk_m (TMNum);
+                                    val->m  = mk_m (TMNum);
                                     MNum* l = (MNum*) (*op)->v;
                                     MNum* r = (MNum*) pc;
                                     val->val = l->val - r->val;
@@ -302,11 +302,12 @@ void cek () {
                     case 1: {
                         M* nul = m_nul ();
                         KOp1* kop = (KOp1*) malloc1 (sizeof(KOp1));
+                        M** ms = (M**) deref( (M*) (*prm)->ms );
                         kop->k  = mk_k (TKOp1);
                         kop->op = (*prm)->op;
                         kop->v  = nul;
                         kop->ok = pk;
-                        pc = (*prm)->ms[0];
+                        pc = deref(ms[0]);
                         pk = (K*) kop;
                         break;
                     }
@@ -315,10 +316,11 @@ void cek () {
                         KOp2* kop = (KOp2*) malloc1 (sizeof(KOp2));
                         kop->k  = mk_k (TKOp2);
                         kop->op = (*prm)->op;
-                        kop->m  = (*prm)->ms[1];
+                        M** ms = (M**) deref((M*) (*prm)->ms);
+                        kop->m  = deref(ms[1]);
                         kop->ok = pk;
                         kop->v  = nul;
-                        pc  = (*prm)->ms[0];
+                        pc  = deref(ms[0]);
                         pk  = (K*) kop;
                         break;
                     }
@@ -341,100 +343,6 @@ int get_file_size (const char* filename) {
     return buf.st_size;
 }
 
-int get_int (char* tmp, int pos, int off) {
-    sprintf (tmp, "%.8s", mm + (pos + off + 2) * 8);
-    return stoi (tmp, nullptr, 2);
-}
-
-M* load_obj (int pos) {
-    int op = get_int (tmp, pos, 0);
-    switch (op) {
-        case TMNul: return m_nul ();
-        case TMTru: {
-            MTru* n = (MTru*) malloc1 (sizeof(MTru));
-            n->m = mk_m (TMTru);
-            return (M*) n;
-        }
-        case TMFals: {
-            MFals* n = (MFals*) malloc1 (sizeof(MFals));
-            n->m = mk_m (TMFals);
-            return (M*) n;
-        }
-        case TMNum: {
-            MNum* n = (MNum*) malloc1 (sizeof(MNum));
-            n->m    = mk_m (TMNum);
-            n->val  = get_int (tmp, pos, 1);
-            return (M*) n;
-        }
-        case TMVar: {
-            MVar* n = (MVar*) malloc1 (sizeof(MVar));
-            n->m    = mk_m (TMVar);
-            n->id   = get_int (tmp, pos, 1);
-            return (M*) n;
-        }
-        case TMApp: {
-            MApp* n = (MApp*) malloc1 (sizeof(MApp));
-            n->m    = mk_m (TMApp);
-            n->fn   = load_obj (get_int (tmp, pos, 1));
-            n->arg  = load_obj (get_int (tmp, pos, 2));
-            return (M*) n;
-        }
-        case TMIf: {
-            MIf* n = (MIf*) malloc1 (sizeof(MIf));
-            n->m    = mk_m (TMIf);
-            n->cnd  = load_obj (get_int (tmp, pos, 1));
-            n->thn  = load_obj (get_int (tmp, pos, 2));
-            n->els  = load_obj (get_int (tmp, pos, 3));
-            return (M*) n;
-        }
-        case TMLam: {
-            MLam* n = (MLam*) malloc1 (sizeof(MLam));
-            n->m    = mk_m (TMLam);
-            n->id   = get_int (tmp, pos, 1);
-            n->body = load_obj (get_int (tmp, pos, 2));
-            return (M*) n;
-        }
-        case TMPrm: {
-            MPrm* n = (MPrm*) malloc1 (sizeof(MPrm));
-            n->m    = mk_m (TMPrm);
-            n->op   = get_int (tmp, pos, 1);
-            switch (n->op) {
-                case TPLt:
-                case TPLtE:
-                case TPGt:
-                case TPGtE:
-                case TPEq:
-                case TPMkPair:
-                case TPSub:
-                case TPAdd: {
-                    n->arity = 2;
-                    n->ms    = (M**) malloc1 (sizeof(M*) * 2);
-                    n->ms[0] = load_obj (get_int (tmp, pos, 2));
-                    n->ms[1] = load_obj (get_int (tmp, pos, 3));
-                    break;
-                }
-                case TPFst:
-                case TPSnd:
-                case TPNeg: {
-                    n->arity = 1;
-                    n->ms    = (M**) malloc1 (sizeof(M*));
-                    n->ms[0] = load_obj (get_int (tmp, pos, 2));
-                    break;
-                }
-                case TPRead: {
-                    n->arity = 0;
-                    break;
-                }
-                default: throw logic_error ("Unknown primitive operator");
-            }
-            return (M*) n;
-        }
-        default: {
-            throw logic_error ("Unknown M Tag in byte code");
-        }
-    };
-}
-
 void read_file (const char* filename) {
 
     // Map file into memory
@@ -444,13 +352,9 @@ void read_file (const char* filename) {
 
     // Read in length of byte code (pf)
     // and starting instruction (pc)
-    pf      = get_int (tmp, -2, 0);
-    int pos = get_int (tmp, -1, 0);
+    int pos = *(int*)mm;
 
-    // Load structures for program
-    pc = load_obj (pos);
-
-    // print_space (from_space_begin, from_space_end, "FROM SPACE");
+    pc = (M*) (mm + pos + 4);
 
     return;
 }

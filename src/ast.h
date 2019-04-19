@@ -185,5 +185,6 @@ M* m_nul ();
 E* e_mt ();
 K* k_ret ();
 K* k_fn (M** m, E** e, K** ok);
+M* deref (M* pc);
 
 #endif
